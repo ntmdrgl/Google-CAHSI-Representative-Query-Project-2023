@@ -3,7 +3,7 @@
 Created on: October 4, 2023
 Authors: Nathaniel Madrigal, Alexander Madrigal
 
-Problem: Given a query in a 1-D range tree, randomly sample a leaf node uniformly
+Problem: Given a query in a 1-D range tree, randomly sample a leaf node dependent on its color's weight
 
 Procedure:
     1 - Associate every internal node in the range tree with a weight equal to the number of leaves
