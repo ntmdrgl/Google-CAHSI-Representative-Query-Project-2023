@@ -7,7 +7,7 @@ Problem: Given a query in a 1-D range tree, randomly sample a leaf node uniforml
 
 Procedure:
     1 - Associate every internal node in the range tree with a weight equal to the number of leaves
-    2 - Find the canonical set that defines a query range
+    2 - Find the canonical set that defines a query range (let 'canonical set' be a list of canonical nodes)
     3 - Randomly select a canonical node in the canonical set with probablities associated with each node's weight
     4 - Randomly select a leaf from chosen canonical node with probablities associated with each node's weight
 """
@@ -36,16 +36,16 @@ class QueryRange():
 def getX(p):
     return p.x_val
 
-# returns the root of a built 1-D range tree
-# P: list of nodes
+# returns the root node of a built 1-D range tree
+# P: list of points
 def buildRangeTree(P):
-    # base case, at a leaf node
-    # assign leaf with a weight of 1
+    # base case, P has one point
+    # create leaf node, v with value of point and weight of 1
     if len(P) <= 1:
-        P[0].weight = 1
-        return P[0]
+        v = Node(P[0].x_val)
+        v.weight = 1
     
-    # recursive case, at an internal node
+    # recursive case, P has more than one point
     else:
         # sort the list and split into two sublists by median node
         P.sort(key=getX)
@@ -64,9 +64,9 @@ def buildRangeTree(P):
         v.right = buildRangeTree(P_right)
         v.weight = v.left.weight + v.right.weight
         
-        return v
+    return v
     
-# returns a point inside the query range whose sub trees contain the canonical set
+# returns a node inside the query range which splits to all subleafs in query range
 # root: root node of 1-D range tree
 # Q: query range
 def findSplitNode(root, Q):
@@ -98,7 +98,7 @@ def findCanonicalSet(root, Q):
         v = Node(sp.left.x_val)
         v.setObjects(sp.left.weight, sp.left.left, sp.left.right)
         
-        # loop while not at leaf
+        # loop while v is not at leaf
         while v.left is not None and v.right is not None:
             # if v is above minimum boundary, add v's right to canonical set
             if v.x_val >= Q.x_min:
@@ -106,7 +106,7 @@ def findCanonicalSet(root, Q):
                 v = v.left
             else:
                 v = v.right
-        # check if the leaf node v traversed to is in range
+        # check if the leaf node v traversed into is in range
         if v.x_val >= Q.x_min and v.x_val <= Q.x_max:
             C.append(v)
             
