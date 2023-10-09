@@ -50,16 +50,16 @@ def buildRangeTree(P):
         # sort the list and split into two sublists by median node
         P.sort(key=getX)
         if len(P) % 2 == 0:
-            med = (len(P) // 2) - 1
+            mid = (len(P) // 2) - 1
         else:
-            med = len(P) // 2
-        P_left = P[:med + 1]
-        P_right = P[med + 1:]
+            mid = len(P) // 2
+        P_left = P[:mid + 1]
+        P_right = P[mid + 1:]
         
         # create an internal node, v with the value of the median node
         # recursively call buildRangeTree on P's left & right sublists to assign v's left & right children 
         # assign weight of internal node as sum of children's weights
-        v = Node(P[med].x_val)
+        v = Node(P[mid].x_val)
         v.left = buildRangeTree(P_left)
         v.right = buildRangeTree(P_right)
         v.weight = v.left.weight + v.right.weight
@@ -127,29 +127,29 @@ def findCanonicalSet(root, Q):
 # returns a uniform random node from canonical set 
 # C: canonical set
 def uniformRandomNode(C):
-    # concept: returning the node with greatest utility is equal to returning a weighted random node
+    # concept: returning the node with greatest key is equal to returning a weighted random node
     
-    # c_max: canonical node with greatest utility
+    # c_max: canonical node with greatest key
     # initialize c_max as the first index of canonical set
     c_max = C[0]
-    c_max_util = np.random.random() ** (1 / c_max.weight)
+    c_max_key = np.random.random() ** (1 / c_max.weight)
     
     # loop from second node to end of canonical set
-    # find the canonical node with the greatest utility in canonical set and assign to c_max
+    # find the canonical node with the greatest key in canonical set and assign to c_max
     for i in range(1, len(C)):
         c = C[i]
-        c_util = np.random.random() ** (1 / c.weight)
-        # replace c_max if the current canonical node has a greater utility
-        if c_util > c_max_util:
+        c_key = np.random.random() ** (1 / c.weight)
+        # replace c_max if the current canonical node has a greater key
+        if c_key > c_max_key:
             c_max = c
-            c_max_util = c_util
+            c_max_key = c_key
     
     # traverse down and select a leaf node from c_max
     v = c_max
     # loop until node v is a leaf
     while v.left is not None and v.right is not None:
-        # compare utilities of left and right children
-        # traverse path with greatest utility
+        # compare keys of left and right children
+        # traverse path with greatest key
         if (np.random.random() ** (1 / v.left.weight) >= np.random.random() ** (1 / v.right.weight)):
             v = v.left
         else:

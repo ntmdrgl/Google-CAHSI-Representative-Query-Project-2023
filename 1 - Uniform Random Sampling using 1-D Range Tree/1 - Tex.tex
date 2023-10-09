@@ -1,0 +1,100 @@
+\documentclass{article}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+
+\title{Pseudo Code for ``Uniform Random Sampling using 1-D Range Tree''}
+\author{Nathaniel Madrigal, Alexander Madrigal}
+\date{8 October, 2023}
+
+\begin{document}
+
+\maketitle
+
+\begin{algorithm}
+\caption{$Build1DRangeTree(P)$}
+\begin{algorithmic}[1]
+    \Statex $Input.$ A set of P points on a line
+    \Statex $Output.$ The root of a 1-dimensional range tree
+    \If{$P$ contains only one point} 
+        \State Create a leaf node $v$ storing this point and store 1 as the weight of v
+    \Else 
+        \State Split $P$ into two subsets; one subset $P_{left}$ contains $x$-coordinate less \Statex \hspace{11.5 pt} than or equal to $x_{mid}$, the median $x$-coordinate, and the other subset \Statex \hspace{11.5 pt} $P_{right}$ contains points with $x$-coordinate larger than $x_{mid}$
+        \State $v_{left} \gets Build1DRangeTree(P_{left})$
+        \State $v_{right} \gets Build1DRangeTree(P_{right})$
+        \State Create a node $v$ storing $x_{mid}$, make $v_{left}$ the left child of $v$, make $v_{right}$ \Statex \hspace{11.5 pt} the right child of $v$, and make the sum of $weight(v_{left})$ \Statex \hspace{11.5 pt} and $weight(v_{right})$ the weight of v
+    \EndIf
+    \State \textbf{return} $v$    
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{$FindSplitNode(T, x, x^\prime)$}
+\begin{algorithmic}[1]
+    \Statex $Input.$ A 1-dimensional range tree $T$, $x$, and $x^\prime$ where $x \le x^\prime$
+    \Statex $Output.$ The node $v$ where the paths to $x$ and $x^\prime$ split, or the leaf where both paths end
+    \State $v \gets root(T)$
+    \While{$v$ is not a leaf \textbf{and} $(x^\prime \le x_{v}$ or $x > x_{v})$}
+        \If{$x^\prime \le x_{v}$} 
+        \State $v \gets lc(v)$
+        \Else 
+        \State $v \gets rc(v)$
+        \EndIf
+    \EndWhile
+    \State \textbf{return} $v$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{$FindCanonicalSet(T,[x:x^\prime]$}
+\begin{algorithmic}[1]
+    \Statex $Input.$ A 1-dimensional range tree $T$ and a range $[x:x^\prime]$
+    \Statex $Output.$ A set of all canonical nodes in $T$ that lie in the range
+    \State Create an empty set $C$
+    \State $v_{split} \gets FindSplitNode(T, x, x^\prime)$
+    \If{$v_{split}$ is a leaf}
+        \State Add point $v_{split}$ to $C$ if point is in range 
+    \Else
+        \State (* Follow the path to $x$ and add points to the right of the path to $C$ *)
+        \State $v \gets lc(v_{split})$
+        \While{$v$ is not a leaf}
+            \If{$x \le x_v$}
+                \State Add $rc(v)$ to C
+                \State $v \gets lc(v)$
+            \Else 
+                \State $v \gets rc(v)$
+            \EndIf
+        \EndWhile
+        \State Add the point stored at leaf $v$ to $C$ if point is in range
+        \State Similarly, follow the path to $x^\prime$, add points to the left of path to $C$, and \Statex \hspace{11.5 pt} check if point stored a the leaf where the path ends is in range and must \Statex \hspace{11.5 pt} be added to $C$
+    \EndIf
+    \State \textbf{return} $C$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{$UniformRandomNode(C)$}
+\begin{algorithmic}[1]
+    \Statex $Input.$ A set of canonical nodes $C$ with size $n$
+    \Statex $Output.$ A uniform random node within the subleafs of $C$  
+    \State (* Select a weighted random canonical node*)
+    \For{each canonical node $c_i \in C$}
+        \State Calculate a key $k_i = u_i^{1/w_i}$, where $u_i = random(0,1)$ and $w_i$ is the \Statex \hspace{11.5 pt} weight of node $c_i$
+    \EndFor
+    \State Store the canonical node with the greatest key in $c_{max}$
+    \State (* Traverse down $c_{max}$ following the path with greatest keys *)
+    \State $v \gets c_{max}$
+    \While{$v$ is not a leaf}
+        \State Calculate the key of left child $k_{lc} = u^{1/w_{lc}}$, where $u = random(0,1)$ and \Statex \hspace{11.5 pt} $w_{lc}$ is the weight of $lc(v)$
+        \State Calculate the key of right child $k_{rc} = u^{1/w_{rc}}$, where $u = random(0,1)$ \Statex \hspace{11.5 pt} and $w_{rc}$ is the weight of $rc(v)$
+        \If{$k_{rc} \le k_{lc}$}
+            \State $v \gets lc(v)$
+        \Else
+            \State $v \gets rc(v)$
+        \EndIf
+    \EndWhile
+    \State \textbf{return} v
+    %\State For each canonical node $k_i \in C$ with probabilities associated with $weight(k) / weight(k_1 + k_2 + ... + k_n)$ 
+\end{algorithmic}
+\end{algorithm}
+
+\end{document}
