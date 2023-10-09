@@ -7,8 +7,8 @@ Problem: Given a query in a 1-D range tree, randomly sample a leaf node uniforml
 
 Procedure:
     1 - Associate every internal node in the range tree with a weight equal to the number of leaves
-    2 - Find the canonical set that defines a query range (let 'canonical set' be a list of canonical nodes)
-    3 - Randomly select a canonical node in the canonical set with probablities associated with each node's weight
+    2 - Find the set of all canonical nodes that defines a query range
+    3 - Randomly select a canonical node from a set of all canonical nodes with probablities associated with each canonical node's weight
     4 - Randomly select a leaf from chosen canonical node with probablities associated with each node's weight
 """
 
@@ -79,9 +79,9 @@ def findSplitNode(root, Q):
             v = v.right
     return v
 
-# return a list of the canonical set 
+# return a list of the set of all canonical nodes
 def findCanonicalSet(root, Q):
-    # start search from the split node, sp and add valid canonical nodes to canonical set, C
+    # start search from the split node, sp and add valid canonical nodes to the set of all canonical nodes, C
     C = list()
     sp = findSplitNode(root, Q)
    
@@ -100,7 +100,7 @@ def findCanonicalSet(root, Q):
         
         # loop while v is not at leaf
         while v.left is not None and v.right is not None:
-            # if v is above minimum boundary, add v's right to canonical set
+            # if v is above minimum boundary, add v's right to C
             if v.x_val >= Q.x_min:
                 C.append(v.right)
                 v = v.left
@@ -124,18 +124,18 @@ def findCanonicalSet(root, Q):
     
     return C
 
-# returns a uniform random node from canonical set 
-# C: canonical set
+# returns a uniform random node from the set of all canonical nodes 
+# C: set of all canonical nodes
 def uniformRandomNode(C):
     # concept: returning the node with greatest key is equal to returning a weighted random node
     
     # c_max: canonical node with greatest key
-    # initialize c_max as the first index of canonical set
+    # initialize c_max as the first index of C
     c_max = C[0]
     c_max_key = np.random.random() ** (1 / c_max.weight)
     
-    # loop from second node to end of canonical set
-    # find the canonical node with the greatest key in canonical set and assign to c_max
+    # loop from second node to end of C
+    # find the canonical node with the greatest key in C and assign to c_max
     for i in range(1, len(C)):
         c = C[i]
         c_key = np.random.random() ** (1 / c.weight)
