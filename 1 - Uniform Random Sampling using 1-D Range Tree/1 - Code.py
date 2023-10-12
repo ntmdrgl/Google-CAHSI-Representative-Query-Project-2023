@@ -18,13 +18,14 @@ class Node():
     def __init__(self, x_val):
         self.x_val = x_val
         
-    def setObjects(self, left, right):
+    def setObjects(self, left, right, weight):
         self.left = left
         self.right = right
+        self.weight = weight
         
-    weight = None
     left = None
     right = None
+    weight = None
 
 class QueryRange():
     def __init__(self, x_min, x_max):
@@ -95,7 +96,7 @@ def findCanonicalSet(root, Q):
         # follow path to x_min
         # create node, v to search left sub tree of sp
         v = Node(sp.left.x_val)
-        v.setObjects(sp.left.left, sp.left.right)
+        v.setObjects(sp.left.left, sp.left.right, sp.left.weight)
         
         # loop while v is not at leaf
         while v.left is not None and v.right is not None:
@@ -111,7 +112,7 @@ def findCanonicalSet(root, Q):
             
         # same process as following path to x_min but now following path to x_max
         v = Node(sp.right.x_val)
-        v.setObjects(sp.right.left, sp.right.right)
+        v.setObjects(sp.right.left, sp.right.right, sp.right.weight)
         while v.left is not None and v.right is not None:
             if v.x_val <= Q.x_max:
                 C.append(v.left)
@@ -185,5 +186,5 @@ canonical_set = findCanonicalSet(range_tree, query_range)
 random_node = uniformRandomNode(canonical_set)
 
 print(random_node.x_val)
-
+# print()
 # proveUniformRandom(canonical_set, query_range, 1000)
