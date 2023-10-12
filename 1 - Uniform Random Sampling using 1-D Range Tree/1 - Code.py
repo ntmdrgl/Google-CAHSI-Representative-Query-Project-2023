@@ -18,11 +18,6 @@ class Node():
     def __init__(self, x_val):
         self.x_val = x_val
         
-    def setObjects(self, left, right, weight):
-        self.left = left
-        self.right = right
-        self.weight = weight
-        
     left = None
     right = None
     weight = None
