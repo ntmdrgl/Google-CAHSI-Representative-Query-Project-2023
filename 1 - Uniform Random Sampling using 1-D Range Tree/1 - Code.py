@@ -158,6 +158,18 @@ def uniformRandomNode(C):
     # return leaf node from c_max
     return v
 
+def proveUniformRandom(C, Q, numIterations):
+    freq_list = list()
+    for i in range(Q.x_max - Q.x_min + 1):
+        freq_list.append(0)
+    
+    for i in range(numIterations):
+        random_node = uniformRandomNode(C)
+        freq_list[random_node.x_val - Q.x_min] = freq_list[random_node.x_val - Q.x_min] + 1
+        
+    for i in range(len(freq_list)):
+        print("element", i + Q.x_min, "%:", freq_list[i] / numIterations)
+
 # ----------------------------------------------------------------------------------------------------------------
 # example usage of uniform random sampling
 
@@ -175,5 +187,5 @@ random_node = uniformRandomNode(canonical_set)
 
 print(random_node.x_val)
 
-
+# proveUniformRandom(canonical_set, query_range, 1000)
 
