@@ -153,6 +153,7 @@ def uniformRandomNode(C):
     # return leaf node from c_max
     return v
 
+# returns the frequency of all nodes within the query range
 def proveUniformRandom(C, Q, numIterations):
     freq_list = list()
     for i in range(Q.x_max - Q.x_min + 1):
