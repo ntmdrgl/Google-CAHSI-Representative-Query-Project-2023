@@ -93,11 +93,8 @@ def findCanonicalSet(root, Q):
     
     # if sp is internal node
     else:
-        # follow path to x_min
-        # create node, v to search left sub tree of sp
-        v = Node(sp.left.x_val)
-        v.setObjects(sp.left.left, sp.left.right, sp.left.weight)
-        
+        # follow path to x_min from split node
+        v = sp.left
         # loop while v is not at leaf
         while v.left is not None and v.right is not None:
             # if v is above minimum boundary, add v's right to C
@@ -111,8 +108,7 @@ def findCanonicalSet(root, Q):
             C.append(v)
             
         # same process as following path to x_min but now following path to x_max
-        v = Node(sp.right.x_val)
-        v.setObjects(sp.right.left, sp.right.right, sp.right.weight)
+        v = sp.right
         while v.left is not None and v.right is not None:
             if v.x_val <= Q.x_max:
                 C.append(v.left)
@@ -128,6 +124,10 @@ def findCanonicalSet(root, Q):
 # C: set of all canonical nodes
 def uniformRandomNode(C):
     # concept: returning the node with greatest key is equal to returning a weighted random node
+    
+    # return if C is empty
+    if not C:
+        return
     
     # c_max: canonical node with greatest key
     # initialize c_max as the first index of C
