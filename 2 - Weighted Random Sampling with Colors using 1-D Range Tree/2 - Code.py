@@ -51,7 +51,7 @@ def buildRangeTree(P, D):
         
     # recursive case, P has more than one point
     else:
-        # sort the list and split into two sublists by median node
+        # sort the list and split into two sublists by median point
         P.sort(key=getX)
         if len(P) % 2 == 0:
             mid = (len(P) // 2) - 1
@@ -60,7 +60,7 @@ def buildRangeTree(P, D):
         P_left = P[:mid + 1]
         P_right = P[mid + 1:]
         
-        # create an internal node, v with the value of the median node
+        # create an internal node, v with the value of the median point
         # recursively call buildRangeTree on P's left & right sublists to assign v's left & right children 
         # assign weight of internal node as sum of children's weights
         v = Node(P[mid].x_val, P[mid].color)

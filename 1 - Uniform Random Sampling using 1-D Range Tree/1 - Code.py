@@ -8,7 +8,8 @@ Problem: Given a query in a 1-D range tree, randomly sample a leaf node uniforml
 Procedure:
     1 - Associate every internal node in the range tree with a weight equal to the number of leaves
     2 - Find the set of all canonical nodes that defines a query range
-    3 - Randomly select a canonical node from a set of all canonical nodes with probablities associated with each canonical node's weight
+    3 - Randomly select a canonical node from a set of all canonical nodes with probablities associated 
+        with each canonical node's weight
     4 - Randomly select a leaf from chosen canonical node with probablities associated with each node's weight
 """
 
@@ -42,7 +43,7 @@ def buildRangeTree(P):
     
     # recursive case, P has more than one point
     else:
-        # sort the list and split into two sublists by median node
+        # sort the list and split into two sublists by median point
         P.sort(key=getX)
         if len(P) % 2 == 0:
             mid = (len(P) // 2) - 1
@@ -51,7 +52,7 @@ def buildRangeTree(P):
         P_left = P[:mid + 1]
         P_right = P[mid + 1:]
         
-        # create an internal node, v with the value of the median node
+        # create an internal node, v with the value of the median point
         # recursively call buildRangeTree on P's left & right sublists to assign v's left & right children 
         # assign weight of internal node as sum of children's weights
         v = Node(P[mid].x_val)
