@@ -47,7 +47,7 @@ def buildRangeTree(P, D):
     if len(P) <= 1:
         v = Node(P[0].x_val, P[0].color)
         v.key = np.random.random() ** (1 / D[v.color])
-        v.maxNode = Node(v.x_val, v.color)
+        v.maxNode = v
         
     # recursive case, P has more than one point
     else:
@@ -218,6 +218,6 @@ print()
 
 # proveUniformRandom(database, query_range, colorDict, numIterations)
 # print()
-# proveWeightedColors(database, query_range, colorDict, numIterations)
+#proveWeightedColors(database, query_range, colorDict, numIterations)
 
 
