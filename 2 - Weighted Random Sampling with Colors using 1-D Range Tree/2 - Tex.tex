@@ -1,0 +1,94 @@
+\documentclass{article}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+
+\title{Pseudo Code for ``Weighted Random Sampling with Colors using 1-D Range Tree''}
+\author{Alexander Madrigal, Nathaniel Madrigal}
+\date{18 October, 2023}
+
+\begin{document}
+
+\maketitle
+
+\begin{algorithm}
+\caption{$Build1DRangeTree(P)$}
+\begin{algorithmic}[1]
+    \Statex $Input.$ A set of $P$ colored points on a line, A dictionary of $D$ color keys paired with \Statex \hspace{28 pt} weights
+    \Statex $Output.$ The root of a 1-dimensional range tree
+    \If{$P$ contains only one point} 
+        \State Create a leaf node $v$ storing this point
+        \State $v_{key} \gets u^{1/D(v_{color})}$, where $u_i = random(0,1)$ and $D(v_{color})$ is weight of \Statex \hspace{11.5 pt} $v_{color}$
+        \State $v_{maxNode} \gets v$
+    \Else 
+        \State Split $P$ into two subsets; one subset $P_{left}$ contains $x \le x_{mid}$, the median \Statex \hspace{11.5 pt} $x$-coordinate, and the other subset $P_{right}$ contains $x > x_{mid}$
+        \State Create a node $v$ storing point at $x_{mid}$
+        \State $v_{left} \gets Build1DRangeTree(P_{left})$
+        \State $v_{right} \gets Build1DRangeTree(P_{right})$
+        \If{$key(v_{left}) > key(v_{right})$}
+            \State $v_{key} \gets key(v_{left})$
+            \State $v_{maxNode} \gets maxNode(v_{left})$ 
+        \Else
+            \State $v_{key} \gets key(v_{right})$
+            \State $v_{maxNode} \gets maxNode(v_{right})$ 
+            
+        \EndIf
+    \EndIf
+    \State \textbf{return} $v$    
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{$FindSplitNode(T, x, x^\prime)$}
+\begin{algorithmic}[1]
+    \Statex $Input.$ A 1-dimensional range tree $T$, $x$, and $x^\prime$ where $x \le x^\prime$
+    \Statex $Output.$ The node $v$ where the paths to $x$ and $x^\prime$ split, or the leaf where both paths end
+    \State $v \gets root(T)$
+    \While{$v$ is not a leaf \textbf{and} $(x^\prime \le x_{v}$ or $x > x_{v})$}
+        \If{$x^\prime \le x_{v}$} 
+        \State $v \gets lc(v)$
+        \Else 
+        \State $v \gets rc(v)$
+        \EndIf
+    \EndWhile
+    \State \textbf{return} $v$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{$FindCanonicalSet(T,[x:x^\prime]$}
+\begin{algorithmic}[1]
+    \Statex $Input.$ A 1-dimensional range tree $T$ and a range $[x:x^\prime]$
+    \Statex $Output.$ A set of all canonical nodes in $T$ that lie in the range
+    \State Create an empty set $C$
+    \State $v_{split} \gets FindSplitNode(T, x, x^\prime)$
+    \If{$v_{split}$ is a leaf}
+        \State Add point $v_{split}$ to $C$ if point is in range 
+    \Else
+        \State (* Follow the path to $x$ and add points to the right of the path to $C$ *)
+        \State $v \gets lc(v_{split})$
+        \While{$v$ is not a leaf}
+            \If{$x \le x_v$}
+                \State Add $rc(v)$ to C
+                \State $v \gets lc(v)$
+            \Else 
+                \State $v \gets rc(v)$
+            \EndIf
+        \EndWhile
+        \State Add the point stored at leaf $v$ to $C$ if point is in range
+        \State Similarly, follow the path to $x^\prime$, add points to the left of path to $C$, and \Statex \hspace{11.5 pt} check if point stored a the leaf where the path ends is in range and must \Statex \hspace{11.5 pt} be added to $C$
+    \EndIf
+    \State \textbf{return} $C$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{$WeightedRandomColorNode(C)$}
+\begin{algorithmic}[1]
+    \Statex $Input.$ A set of canonical nodes $C$
+    \Statex $Output.$ A weighted random node stored within canonical nodes $C$
+    \State Store the canonical node with the greatest key in $c_{max}$
+    \State \textbf{return} $maxNode(c_{max})$ 
+\end{algorithmic}
+\end{algorithm}
+
+\end{document}
