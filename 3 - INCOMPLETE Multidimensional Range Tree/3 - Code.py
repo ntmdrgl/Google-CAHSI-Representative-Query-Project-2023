@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on: October _, 2023
+Created on: October 18, 2023
 Authors: Nathaniel Madrigal, Alexander Madrigal
 
 Objective:
@@ -24,8 +24,8 @@ class Node():
     def getVal(self, d):
         return self.arrValues[d - 1]
     
-    # less-than function
-    # allows for distinct points with same coordinates in one dimension
+    # less-than function; used to sort Nodes in sortNodes function
+    # allows for distinct points with same coordinates in any dimension
     def le(self, other, d):
         if self.getVal(d) < other.getVal(d):
             return True
@@ -39,17 +39,18 @@ class Node():
                         return True
                     elif self.getVal(i) > other.getVal(i):
                         return False
-    
     left = None
     right = None
     weight = None
     T_assoc = None
 
+# class for 1-dimensional range
 class Range():
     def __init__(self, min, max):
         self.min = min
         self.max = max
 
+# class containing an array of Ranges
 class QueryRange():
     def __init__(self, arrRanges):
         # direct-address table of ranges with dimension as key
@@ -88,26 +89,29 @@ def sortNodes(arrNode, low, high, d):
         sortNodes(arrNode, low, pi, d)
         sortNodes(arrNode, pi + 1, high, d)
 
-# returns the root node of an associated tree
+# returns the root node of a built multidimensional range tree
 # P: list of points
-# d: dimension
-def buildAssociatedTree(P, d):
-    return -1
-
-# returns the root node of a built 1-D range tree
-def buildRangeTree(P):
-    T_assoc = buildAssociatedTree(P, 2)
+# d: starting dimension, always starts at one
+def buildRangeTree(P, d):
+    if not P:
+        raise Exception('List of Nodes is empty')
+    
+    if d > MAX_DIMENSION:
+        return None
+    
+    # build an associated tree with the same set of points in the d+1 dimension
+    T_assoc = buildRangeTree(P, d + 1)
     
     # base case, P has one point
     # create leaf node, v with value of point and weight of 1
-    if len(P) <= 1:
-        v = Node(P[0].x_val)
+    if len(P) == 1:
+        v = Node(P[0].arrValues)
         v.weight = 1
     
     # recursive case, P has more than one point
     else:
         # sort the list and split into two sublists by median node
-        # P.sort(key=getVal())
+        sortNodes(P, 0, len(P) - 1, d)
         if len(P) % 2 == 0:
             mid = (len(P) // 2) - 1
         else:
@@ -118,66 +122,83 @@ def buildRangeTree(P):
         # create an internal node, v with the value of the median node
         # recursively call buildRangeTree on P's left & right sublists to assign v's left & right children 
         # assign weight of internal node as sum of children's weights
-        v = Node(P[mid].x_val)
-        v.left = buildRangeTree(P_left)
-        v.right = buildRangeTree(P_right)
+        # assign T_assoc as v's associate tree
+        v = Node(P[mid].arrValues)
+        v.left = buildRangeTree(P_left, d)
+        v.right = buildRangeTree(P_right, d)
         v.weight = v.left.weight + v.right.weight
+        v.T_assoc = T_assoc
         
     return v
     
 # returns a node inside the query range which splits to all subleafs in query range
 # root: root node of 1-D range tree
 # Q: query range
-def findSplitNode(root, Q):
+def findSplitNode(root, Q, d):
     v = root
     # loop until node v is at a leaf or is inside the query range
-    while (v.left is not None and v.right is not None and (v.x_val >= Q.x_max or v.x_val < Q.x_min)):
-        if v.x_val >= Q.x_max:
+    while (v.left is not None and v.right is not None and (v.getVal(d) >= Q.getRange(d).max or v.getVal(d) < Q.getRange(d).min)):
+        if v.getVal(d) >= Q.getRange(d).max:
             v = v.left
         else:
             v = v.right
     return v
 
 # return a list of the set of all canonical nodes
-def findCanonicalSet(root, Q):
+def findCanonicalSet(root, Q, d):    
+    if root is None:
+        return
+    
     # start search from the split node, sp and add valid canonical nodes to the set of all canonical nodes, C
     C = list()
-    sp = findSplitNode(root, Q)
-   
+    sp = findSplitNode(root, Q, d)
     # if sp is leaf
     if sp.left is None and sp.right is None:
         # check if in query range
-        if sp.x_val >= Q.x_min and sp.x_val <= Q.x_max:
+        if sp.getVal(d) >= Q.getRange(d).min and sp.getVal(d) <= Q.getRange(d).max:
             C.append(sp)
     
     # if sp is internal node
     else:
-        # follow path to x_min from split node
+        # follow path to minimum value in range from split node
         v = sp.left
         # loop while v is not at leaf
         while v.left is not None and v.right is not None:
             # if v is above minimum boundary, add v's right to C
-            if v.x_val >= Q.x_min:
+            if v.getVal(d) >= Q.getRange(d).min:
                 C.append(v.right)
                 v = v.left
             else:
                 v = v.right
         # check if the leaf node v traversed into is in range
-        if v.x_val >= Q.x_min and v.x_val <= Q.x_max:
+        if v.getVal(d) >= Q.getRange(d).min and v.getVal(d) <= Q.getRange(d).max:
             C.append(v)
             
-        # same process as following path to x_min but now following path to x_max
+        # same process as following path to minimum value but now following path to maximum value in range
         v = sp.right
         while v.left is not None and v.right is not None:
-            if v.x_val <= Q.x_max:
+            if v.getVal(d) <= Q.getRange(d).max:
                 C.append(v.left)
                 v = v.right
             else:
                 v = v.left
-        if v.x_val >= Q.x_min and v.x_val <= Q.x_max:
+        if v.getVal(d) >= Q.getRange(d).min and v.getVal(d) <= Q.getRange(d).max:
             C.append(v)
     
-    return C
+    if d == MAX_DIMENSION:
+        return C
+    else:
+        if not C:
+            return C
+        c_sum = findCanonicalSet(C[0].T_assoc, Q, d + 1)
+        for i in range(1, len(C)):
+            if not c_sum:
+                c_sum = findCanonicalSet(C[i].T_assoc, Q, d + 1)
+            else:
+                c_assoc = findCanonicalSet(C[i].T_assoc, Q, d + 1)
+                if c_assoc:
+                    c_sum = c_sum + c_assoc
+        return c_sum
 
 # returns a uniform random node from the set of all canonical nodes 
 # C: set of all canonical nodes
@@ -186,7 +207,8 @@ def uniformRandomNode(C):
     
     # return if C is empty
     if not C:
-        return
+        print('No Nodes found in range')
+        return None
     
     # c_max: canonical node with greatest key
     # initialize c_max as the first index of C
@@ -217,44 +239,104 @@ def uniformRandomNode(C):
     # return leaf node from c_max
     return v
 
-# returns the frequency of all nodes within the query range
-def proveUniformRandom(C, Q, numIterations):
-    freq_list = list()
-    for i in range(Q.x_max - Q.x_min + 1):
-        freq_list.append(0)
+def printLeaves(root):
+    if root.left is None and root.right is None:
+        print(root.getVal(1), root.getVal(2), root.getVal(3))
+    else:
+        printLeaves(root.left)
+        printLeaves(root.right)
+    
+
+# prints the frequency of all nodes within the query range
+# prints the range of values inside query results
+def proveUniformRandom(C, numIterations):
+    freqTable = {}
+    x_min = None
+    x_max = None
+    y_min = None
+    y_max = None
+    z_min = None
+    z_max = None
     
     for i in range(numIterations):
-        random_node = uniformRandomNode(C)
-        freq_list[random_node.x_val - Q.x_min] = freq_list[random_node.x_val - Q.x_min] + 1
+        randomNode = uniformRandomNode(C)
+        if randomNode is None:
+            continue
+        if x_min is None:
+            x_min = randomNode.getVal(1)
+            x_max = randomNode.getVal(1)
+            y_min = randomNode.getVal(2)
+            y_max = randomNode.getVal(2)
+            z_min = randomNode.getVal(3)
+            z_max = randomNode.getVal(3)
+        if (randomNode.getVal(1) < x_min):
+            x_min = randomNode.getVal(1)
+        if (randomNode.getVal(1) > x_max):
+            x_max = randomNode.getVal(1)
+        if (randomNode.getVal(2) < y_min):
+            y_min = randomNode.getVal(2)
+        if (randomNode.getVal(2) > y_max):
+            y_max = randomNode.getVal(2)
+        if (randomNode.getVal(3) < z_min):
+            z_min = randomNode.getVal(3)
+        if (randomNode.getVal(3) > y_max):
+            z_max = randomNode.getVal(3)   
+        key = "("+str(randomNode.getVal(1))+","+str(randomNode.getVal(2))+","+str(randomNode.getVal(3))+")"
+        if key in freqTable.keys():
+            freqTable[key] = freqTable[key] + 1 
+        else:
+            freqTable[key] = 1
+    
+    for x in freqTable:
+        val = freqTable[x]
+        while len(x) < 20:
+            x = x + " "
+        print(x, "%:", val / numIterations)
         
-    for i in range(len(freq_list)):
-        print("element", i + Q.x_min, "%:", freq_list[i] / numIterations)
+    print('x: [' + str(x_min) + ',' + str(x_max) + ']')
+    print('y: [' + str(y_min) + ',' + str(y_max) + ']')
+    print('z: [' + str(z_min) + ',' + str(z_max) + ']')
 
 # ----------------------------------------------------------------------------------------------------------------
 # example usage of uniform random sampling
 
-n1 = Node([3, 2, 4])
-n2 = Node([3, 1, 8])
-n3 = Node([5, 2, 4])
-n4 = Node([5, 1, 8])
+# build a random set of points for a database
+database = list()
 
-n_list = [n1, n2, n3, n4]
-sortNodes(n_list, 0, len(n_list) - 1, 1)
-for n in n_list:
-    print(n.getVal(1), n.getVal(2), n.getVal(3))
+maxCoordinateValue = 1000
+x_coord = list()
+y_coord = list()
+z_coord = list()
 
-# database is a list containing values 0 to 999
-# database = list()
-# database_size = 1000
-# for i in range(database_size):
-#     database.append(Node(i))
+for i in range(maxCoordinateValue):
+    x_coord.append(i)
+    y_coord.append(i)
+    z_coord.append(i)
 
-# # find random node in database between the query range 20 to 30
-# range_tree = buildRangeTree(database)
-# query_range = QueryRange(20, 30)
-# canonical_set = findCanonicalSet(range_tree, query_range)
-# random_node = uniformRandomNode(canonical_set)
+databaseSize = 1000
+for i in range(databaseSize):
+    x = x_coord.pop(np.random.randint(0, len(x_coord)))
+    y = y_coord.pop(np.random.randint(0, len(y_coord)))
+    z = z_coord.pop(np.random.randint(0, len(z_coord)))
+    database.append( Node([x, y, z]) )
+    
+# build the range tree
+rangeTree = buildRangeTree(database, 1)
+x_range = Range(500, 1000)
+y_range = Range(100, 600)
+z_range = Range(750, 850)
+queryRange = QueryRange([x_range, y_range, z_range])
+canonicalNodes = findCanonicalSet(rangeTree, queryRange, 1)
 
-# print(random_node.x_val)
-# print()
-# proveUniformRandom(canonical_set, query_range, 1000)
+# query for a singular node
+randomNode = uniformRandomNode(canonicalNodes)
+if randomNode != None:
+     print('query result:', randomNode.getVal(1), randomNode.getVal(2), randomNode.getVal(3))
+
+# ----------------------------------------------------------------------------------------------------------------
+# commented code below proves that:
+#     1. nodes are returned uniformly at random
+#     2. nodes are with query range
+
+# numIterations = 1000
+# proveUniformRandom(canonicalNodes, numIterations)
