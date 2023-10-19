@@ -336,7 +336,7 @@ if randomNode != None:
 # ----------------------------------------------------------------------------------------------------------------
 # commented code below proves that:
 #     1. nodes are returned uniformly at random
-#     2. nodes are with query range
+#     2. nodes are within query range
 
 # numIterations = 1000
 # proveUniformRandom(canonicalNodes, numIterations)
