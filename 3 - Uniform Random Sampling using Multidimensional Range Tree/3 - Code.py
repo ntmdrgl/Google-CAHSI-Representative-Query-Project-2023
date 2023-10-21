@@ -5,7 +5,6 @@ Authors: Nathaniel Madrigal, Alexander Madrigal
 
 Objective:
     1. Implement scalable multidimensional range tree
-    2. Remedy restriction of non-repeating coordinates in range tree
 """
 
 import numpy as np
@@ -25,20 +24,11 @@ class Node():
         return self.arrValues[d - 1]
     
     # less-than function; used to sort Nodes in sortNodes function
-    # allows for distinct points with same coordinates in any dimension
     def le(self, other, d):
         if self.getVal(d) < other.getVal(d):
             return True
-        elif self.getVal(d) > other.getVal(d):
+        elif self.getVal(d) >= other.getVal(d):
             return False
-        # if values on d are equal, compare on other dimensions
-        else:
-            for i in range(1, MAX_DIMENSION + 1):
-                if i != d:
-                    if self.getVal(i) < other.getVal(i):
-                        return True
-                    elif self.getVal(i) > other.getVal(i):
-                        return False
     left = None
     right = None
     weight = None
@@ -90,16 +80,13 @@ def sortNodes(arrNode, low, high, d):
         sortNodes(arrNode, pi + 1, high, d)
 
 # returns the root node of a built multidimensional range tree
-# P: list of points
+# P: list of nodes
 # d: starting dimension, always starts at one
 def buildRangeTree(P, d):
-    if not P:
-        raise Exception('List of Nodes is empty')
-    
     if d > MAX_DIMENSION:
         return None
     
-    # build an associated tree with the same set of points in the d+1 dimension
+    # build an associated tree with the same set of nodes in the d+1 dimension
     T_assoc = buildRangeTree(P, d + 1)
     
     # base case, P has one point
@@ -108,7 +95,7 @@ def buildRangeTree(P, d):
         v = Node(P[0].arrValues)
         v.weight = 1
     
-    # recursive case, P has more than one point
+    # recursive case, P has more than one node
     else:
         # sort the list and split into two sublists by median node
         sortNodes(P, 0, len(P) - 1, d)
@@ -146,9 +133,6 @@ def findSplitNode(root, Q, d):
 
 # return a list of the set of all canonical nodes
 def findCanonicalSet(root, Q, d):    
-    if root is None:
-        return
-    
     # start search from the split node, sp and add valid canonical nodes to the set of all canonical nodes, C
     C = list()
     sp = findSplitNode(root, Q, d)
@@ -185,20 +169,24 @@ def findCanonicalSet(root, Q, d):
         if v.getVal(d) >= Q.getRange(d).min and v.getVal(d) <= Q.getRange(d).max:
             C.append(v)
     
-    if d == MAX_DIMENSION:
+    # base case, return list of canonical nodes if at highest dimension or list is empty
+    if d == MAX_DIMENSION or (not C):
         return C
     else:
-        if not C:
-            return C
-        c_sum = findCanonicalSet(C[0].T_assoc, Q, d + 1)
-        for i in range(1, len(C)):
-            if not c_sum:
-                c_sum = findCanonicalSet(C[i].T_assoc, Q, d + 1)
-            else:
-                c_assoc = findCanonicalSet(C[i].T_assoc, Q, d + 1)
-                if c_assoc:
-                    c_sum = c_sum + c_assoc
-        return c_sum
+        # recursive case, create and return a list of all canonical nodes in associate trees
+        C_sum = list()
+        
+        # loop through every canonical node in C
+        for i in range(len(C)):
+            # don't recursively call if canonical node has an empty T_assoc
+            if C[i].T_assoc is None:
+                continue
+            # create a list of canonical nodes for T_assoc
+            C_assoc = findCanonicalSet(C[i].T_assoc, Q, d + 1)
+            # add to C_sum only if C_assoc contains an node
+            if C_assoc:
+                C_sum = C_sum + C_assoc
+        return C_sum
 
 # returns a uniform random node from the set of all canonical nodes 
 # C: set of all canonical nodes
@@ -239,68 +227,10 @@ def uniformRandomNode(C):
     # return leaf node from c_max
     return v
 
-def printLeaves(root):
-    if root.left is None and root.right is None:
-        print(root.getVal(1), root.getVal(2), root.getVal(3))
-    else:
-        printLeaves(root.left)
-        printLeaves(root.right)
-    
-
-# prints the frequency of all nodes within the query range
-# prints the range of values inside query results
-def proveUniformRandom(C, numIterations):
-    freqTable = {}
-    x_min = None
-    x_max = None
-    y_min = None
-    y_max = None
-    z_min = None
-    z_max = None
-    
-    for i in range(numIterations):
-        randomNode = uniformRandomNode(C)
-        if randomNode is None:
-            continue
-        if x_min is None:
-            x_min = randomNode.getVal(1)
-            x_max = randomNode.getVal(1)
-            y_min = randomNode.getVal(2)
-            y_max = randomNode.getVal(2)
-            z_min = randomNode.getVal(3)
-            z_max = randomNode.getVal(3)
-        if (randomNode.getVal(1) < x_min):
-            x_min = randomNode.getVal(1)
-        if (randomNode.getVal(1) > x_max):
-            x_max = randomNode.getVal(1)
-        if (randomNode.getVal(2) < y_min):
-            y_min = randomNode.getVal(2)
-        if (randomNode.getVal(2) > y_max):
-            y_max = randomNode.getVal(2)
-        if (randomNode.getVal(3) < z_min):
-            z_min = randomNode.getVal(3)
-        if (randomNode.getVal(3) > y_max):
-            z_max = randomNode.getVal(3)   
-        key = "("+str(randomNode.getVal(1))+","+str(randomNode.getVal(2))+","+str(randomNode.getVal(3))+")"
-        if key in freqTable.keys():
-            freqTable[key] = freqTable[key] + 1 
-        else:
-            freqTable[key] = 1
-    
-    for x in freqTable:
-        val = freqTable[x]
-        while len(x) < 20:
-            x = x + " "
-        print(x, "%:", val / numIterations)
-        
-    print('x: [' + str(x_min) + ',' + str(x_max) + ']')
-    print('y: [' + str(y_min) + ',' + str(y_max) + ']')
-    print('z: [' + str(z_min) + ',' + str(z_max) + ']')
-
 # ----------------------------------------------------------------------------------------------------------------
 # example usage of uniform random sampling
 
-# build a random set of points for a database
+# create a list of nodes to use as database
 database = list()
 
 maxCoordinateValue = 1000
@@ -320,7 +250,7 @@ for i in range(databaseSize):
     z = z_coord.pop(np.random.randint(0, len(z_coord)))
     database.append( Node([x, y, z]) )
     
-# build the range tree
+# build the range tree and list of canonical nodes for a given query range 
 rangeTree = buildRangeTree(database, 1)
 x_range = Range(500, 1000)
 y_range = Range(100, 600)
@@ -328,15 +258,55 @@ z_range = Range(750, 850)
 queryRange = QueryRange([x_range, y_range, z_range])
 canonicalNodes = findCanonicalSet(rangeTree, queryRange, 1)
 
-# query for a singular node
+# query for a random node in database between the given query range
 randomNode = uniformRandomNode(canonicalNodes)
 if randomNode != None:
-     print('query result:', randomNode.getVal(1), randomNode.getVal(2), randomNode.getVal(3))
+     print('Query result:', randomNode.getVal(1), randomNode.getVal(2), randomNode.getVal(3), '\n')
 
 # ----------------------------------------------------------------------------------------------------------------
-# commented code below proves that:
-#     1. nodes are returned uniformly at random
-#     2. nodes are within query range
+# test below proves code correctness
 
-# numIterations = 1000
-# proveUniformRandom(canonicalNodes, numIterations)
+freqTable = {}
+numIterations = 1000
+x_min = None
+
+for i in range(numIterations):
+    randomNode = uniformRandomNode(canonicalNodes)
+    if randomNode is None:
+        continue
+    if x_min is None:
+        x_min = randomNode.getVal(1)
+        x_max = x_min
+        y_min = randomNode.getVal(2)
+        y_max = y_min
+        z_min = randomNode.getVal(3)
+        z_max = z_min
+    if (randomNode.getVal(1) < x_min):
+        x_min = randomNode.getVal(1)
+    if (randomNode.getVal(1) > x_max):
+        x_max = randomNode.getVal(1)
+    if (randomNode.getVal(2) < y_min):
+        y_min = randomNode.getVal(2)
+    if (randomNode.getVal(2) > y_max):
+        y_max = randomNode.getVal(2)
+    if (randomNode.getVal(3) < z_min):
+        z_min = randomNode.getVal(3)
+    if (randomNode.getVal(3) > y_max):
+        z_max = randomNode.getVal(3)   
+    key = "("+str(randomNode.getVal(1))+","+str(randomNode.getVal(2))+","+str(randomNode.getVal(3))+")"
+    if key in freqTable.keys():
+        freqTable[key] = freqTable[key] + 1 
+    else:
+        freqTable[key] = 1
+
+print('Frequencies of random nodes:')
+for x in freqTable:
+    val = freqTable[x]
+    while len(x) < 20:
+        x = x + " "
+    print(x, "%:", val / numIterations)
+    
+print('\nRanges of random nodes:')
+print('x: [' + str(x_min) + ',' + str(x_max) + ']')
+print('y: [' + str(y_min) + ',' + str(y_max) + ']')
+print('z: [' + str(z_min) + ',' + str(z_max) + ']')
