@@ -3,47 +3,41 @@
 Created on: October 4, 2023
 Authors: Nathaniel Madrigal, Alexander Madrigal
 
-Problem: Given a query in a 1-D range tree, randomly sample a leaf node uniformly
-
-Procedure:
-    1 - Associate every internal node in the range tree with a weight equal to the number of leaves
-    2 - Find the set of all canonical nodes that defines a query range
-    3 - Randomly select a canonical node from a set of all canonical nodes with probablities associated 
-        with each canonical node's weight
-    4 - Randomly select a leaf from chosen canonical node with probablities associated with each node's weight
 """
 
 import numpy as np
 
+# class used to contain one dimensional points in range tree
 class Node():
     def __init__(self, x_val):
         self.x_val = x_val
-        
     left = None
     right = None
     weight = None
 
+# class defines the search interval of a query
 class QueryRange():
     def __init__(self, x_min, x_max):
         self.x_min = x_min
         self.x_max = x_max
         
 # key for sorting list of nodes on their x_val
+# ex. P.sort(key=getX)
 def getX(p):
     return p.x_val
 
 # returns the root node of a built 1-D range tree
-# P: list of points
+# P: list of nodes
 def buildRangeTree(P):
-    # base case, P has one point
-    # create leaf node, v with value of point and weight of 1
+    # base case, P has one node
+    # create leaf node v with value of node and weight of 1
     if len(P) <= 1:
         v = Node(P[0].x_val)
         v.weight = 1
     
-    # recursive case, P has more than one point
+    # recursive case, P has more than one node
     else:
-        # sort the list and split into two sublists by median point
+        # sort the list and split into two sublists by median node
         P.sort(key=getX)
         if len(P) % 2 == 0:
             mid = (len(P) // 2) - 1
@@ -52,7 +46,7 @@ def buildRangeTree(P):
         P_left = P[:mid + 1]
         P_right = P[mid + 1:]
         
-        # create an internal node, v with the value of the median point
+        # create an internal node v with the value of the median node
         # recursively call buildRangeTree on P's left & right sublists to assign v's left & right children 
         # assign weight of internal node as sum of children's weights
         v = Node(P[mid].x_val)
@@ -75,7 +69,9 @@ def findSplitNode(root, Q):
             v = v.right
     return v
 
-# return a list of the set of all canonical nodes
+# return a list of all canonical nodes
+# root: root node of 1-D range tree
+# Q: query range
 def findCanonicalSet(root, Q):
     # start search from the split node, sp and add valid canonical nodes to the set of all canonical nodes, C
     C = list()
@@ -119,11 +115,10 @@ def findCanonicalSet(root, Q):
 # returns a uniform random node from the set of all canonical nodes 
 # C: set of all canonical nodes
 def uniformRandomNode(C):
-    # concept: returning the node with greatest key is equal to returning a weighted random node
-    
     # return if C is empty
     if not C:
-        return
+        print('No Nodes found in range')
+        return None
     
     # c_max: canonical node with greatest key
     # initialize c_max as the first index of C
@@ -154,34 +149,55 @@ def uniformRandomNode(C):
     # return leaf node from c_max
     return v
 
-# returns the frequency of all nodes within the query range
-def proveUniformRandom(C, Q, numIterations):
-    freq_list = list()
-    for i in range(Q.x_max - Q.x_min + 1):
-        freq_list.append(0)
-    
-    for i in range(numIterations):
-        random_node = uniformRandomNode(C)
-        freq_list[random_node.x_val - Q.x_min] = freq_list[random_node.x_val - Q.x_min] + 1
-        
-    for i in range(len(freq_list)):
-        print("element", i + Q.x_min, "%:", freq_list[i] / numIterations)
-
 # ----------------------------------------------------------------------------------------------------------------
 # example usage of uniform random sampling
 
-# database is a list containing values 0 to 999
+# create a list of nodes to use as database
 database = list()
-database_size = 1000
-for i in range(database_size):
+databaseSize = 1000
+for i in range(databaseSize):
     database.append(Node(i))
 
-# find random node in database between the query range 20 to 30
-range_tree = buildRangeTree(database)
-query_range = QueryRange(20, 30)
-canonical_set = findCanonicalSet(range_tree, query_range)
-random_node = uniformRandomNode(canonical_set)
+# build the range tree and list of canonical nodes for a given query range 
+rangeTree = buildRangeTree(database)
+queryRange = QueryRange(450, 465)
+canonicalNodes = findCanonicalSet(rangeTree, queryRange)
 
-print(random_node.x_val)
-# print()
-# proveUniformRandom(canonical_set, query_range, 1000)
+# query for a random node in database between the given query range
+randomNode = uniformRandomNode(canonicalNodes)
+
+print('Query result:', randomNode.x_val, '\n')
+
+# ----------------------------------------------------------------------------------------------------------------
+# test below proves code correctness
+
+freqTable = {}
+numIterations = 1000
+x_min = None
+
+for i in range(numIterations):
+    randomNode = uniformRandomNode(canonicalNodes)
+    if randomNode is None:
+        continue
+    if x_min is None:
+        x_min = randomNode.x_val
+        x_max = x_min
+    if (randomNode.x_val < x_min):
+        x_min = randomNode.x_val
+    if (randomNode.x_val > x_max):
+        x_max = randomNode.x_val
+    key = "("+str(randomNode.x_val)+")"
+    if key in freqTable.keys():
+        freqTable[key] = freqTable[key] + 1 
+    else:
+        freqTable[key] = 1
+
+print('Frequencies of random nodes:')
+for x in freqTable:
+    val = freqTable[x]
+    while len(x) < 10:
+        x = x + " "
+    print(x, "%:", val / numIterations)
+
+print('\nRange of random nodes:')
+print('[' + str(x_min) + ',' + str(x_max) + ']')
