@@ -160,7 +160,7 @@ for i in range(databaseSize):
 
 # build the range tree and list of canonical nodes for a given query range 
 rangeTree = buildRangeTree(database)
-queryRange = QueryRange(450, 465)
+queryRange = QueryRange(450, 460)
 canonicalNodes = findCanonicalSet(rangeTree, queryRange)
 
 # query for a random node in database between the given query range
@@ -169,7 +169,7 @@ randomNode = uniformRandomNode(canonicalNodes)
 print('Query result:', randomNode.x_val, '\n')
 
 # ----------------------------------------------------------------------------------------------------------------
-# test below proves code correctness
+# test below proves uniformRandomNode has a uniform distribution and is inbetween query interval
 
 freqTable = {}
 numIterations = 1000
