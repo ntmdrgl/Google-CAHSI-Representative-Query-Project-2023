@@ -174,19 +174,6 @@ def uniformRandomNodeRangeTree(C):
     
     # return leaf node from c_max
     return v
-    
-# returns the frequency of all nodes within the query range
-def proveUniformRandom(C, Q, numIterations):
-    freq_list = list()
-    for i in range(Q.x_max - Q.x_min + 1):
-        freq_list.append(0)
-    
-    for i in range(numIterations):
-        random_node = uniformRandomNodeRangeTree(C)
-        freq_list[random_node.x_val - Q.x_min] = freq_list[random_node.x_val - Q.x_min] + 1
-        
-    for i in range(len(freq_list)):
-        print("element", i + Q.x_min, "%:", freq_list[i] / numIterations)
 
 class ColoredWeightedRandomSampling():
     colorDict = dict()
@@ -244,16 +231,8 @@ class ColoredWeightedRandomSampling():
             d = 0
         # at root, set bounding box to range of P
         if B is None:
-            # # y_min is the minimum y_val in P that is not negative infinity
-            # y_min = None
-            # for p in P:
-            #     if p.y_val != -np.Inf:
-            #         if y_min is None:
-            #             y_min = p.y_val
-            #         else:
-            #             if (p.y_val < y_min):
-            #                 y_min = p.y_val
             B = BoundingBox(min(P, key=getX).x_val, max(P, key=getX).x_val, min(P, key=getY).y_val, max(P, key=getY).y_val)
+            
         # base case, P has one point
         # create leaf node, v with value of point 
         # set v's box to itself
@@ -301,87 +280,120 @@ class ColoredWeightedRandomSampling():
                 
         return v
     
-    # returns a list of the set of all canonical nodes
+    # returns a list of nodes in root's subtree
+    # root: root node of tree 
+    def reportSubtree(self, root):
+        L = list()
+        
+        if root is None:
+            return L
+        
+        if root.left is None and root.right is None:
+            L = list()
+            L.append(root)
+            return L 
+        else:
+            L_left = self.reportSubtree(root.left)
+            L_right = self.reportSubtree(root.right)
+                    
+            if L_left:
+                L = L + L_left
+            if L_right:
+                L = L + L_right
+            
+            return L
+    
+    # returns a list of all nodes that satisfy query range
     # root: root node of a two dimensional K-D tree
     # Q: query range
-    def findCanonicalSetKDTree(self, root, Q):
+    def queryKDTree(self, root, Q):
         # transform Q from 1-D interval [x_min, x_max] 
         # to 2-D bounding box [x_min, x_max] x (-infinity, x_min)
-        C = list()
+        L = list()
         if Q.y_min is None:
             Q.y_min = -np.inf
         if Q.y_max is None:
             Q.y_max = Q.x_min
         
+        # if root is a leaf, check if root's point intersects Q
         if root.left is None and root.right is None:
             if root.x_val >= Q.x_min and root.x_val <= Q.x_max and root.y_val >= Q.y_min and root.y_val < Q.y_max:
-                print('intersect leaf')
-                print("\t", "point:", root.x_val, root.y_val)
-                print("\t", "root: ", root.box.x_min, root.box.x_max, root.box.y_min, root.box.y_max)
-                print("\t", "Q:    ", Q.x_min, Q.x_max, Q.y_min, Q.y_max)
-                C.append(root)
+                L = L + self.reportSubtree(root)
             else:
-                return C
+                return L
+        # if root is not a leaf
         else:
-            # if root's box does not intersect Q, end code:
+            # if root's box does not intersect Q, return
             if root.box.x_min > Q.x_max or root.box.x_max < Q.x_min or root.box.y_min >= Q.y_max:
-                print('not intersect')
-                # print("\t", "point:", root.x_val, root.y_val)
-                print("\t", "root: ", root.box.x_min, root.box.x_max, root.box.y_min, root.box.y_max)
-                print("\t", "Q:    ", Q.x_min, Q.x_max, Q.y_min, Q.y_max)
-                return C
+                return L
             
-            # if root's box is fully within Q, append root to canonical set
+            # if root's box fully intersects Q, append root to list
             elif root.box.x_min >= Q.x_min and root.box.x_max <= Q.x_max and root.box.y_max < Q.y_max:
-                print('intersect')
-                # print("\t", "point:", root.x_val, root.y_val)
-                print("\t", "root: ", root.box.x_min, root.box.x_max, root.box.y_min, root.box.y_max)
-                print("\t", "Q:    ", Q.x_min, Q.x_max, Q.y_min, Q.y_max)
-                C.append(root)
+                L = L + self.reportSubtree(root)
                 
             # if root's box partially intersects Q, search root's left and right
-            else:
-                print('partial intersect')
-                # print("\t", "point:", root.x_val, root.y_val)
-                print("\t", "root: ", root.box.x_min, root.box.x_max, root.box.y_min, root.box.y_max)
-                print("\t", "Q:    ", Q.x_min, Q.x_max, Q.y_min, Q.y_max)
+            else:          
+                L_left = self.queryKDTree(root.left, Q)
+                L_right = self.queryKDTree(root.right, Q)
                 
-                c_left = self.findCanonicalSetKDTree(root.left, Q)
-                c_right = self.findCanonicalSetKDTree(root.right, Q)
-                
-                if c_left:
-                    C = C + c_left
-                if c_right:
-                    C = C + c_right
+                if L_left:
+                    L = L + L_left
+                if L_right:
+                    L = L + L_right
         
-        return C
-    
-    def weightedRandomColor():
-        return
-    
-    def weightedRandomColorNode():
-        return
+        return L
 
+    # returns a weighted random color node
+    # L: list of nodes that satisfy query; every node has a unique color
+    # Q: query range
+    # D: dictionary of colors associated with weights
+    def weightedRandomColorNode(self, L, Q, D):
+        # return if L is empty
+        if not L:
+            print('No Nodes found in range')
+            return None
+        
+        # initialize l_max as first element in list
+        l_max = L[0]
+        
+        # assign l_max to l with the greatest key
+        for l in  L:
+            if np.random.random() ** (1 / D[l.color]) > np.random.random() ** (1 / D[l_max.color]):
+                l_max = l
+        
+        # search the range tree of l_max's color and find a random node that satisfies query range
+        canonicalNodes = findCanonicalSetRangeTree(colorDict[l_max.color] , Q)
+        v = uniformRandomNodeRangeTree(canonicalNodes) 
+        
+        return v
+        
 
 # ----------------------------------------------------------------------------------------------------------------
 # example usage of uniform random sampling
 
 # database is a list containing values 0 to 999
 database = list()
-databaseSize = 10
-colorWeightDict = {'red': 1, 'blue': 3, 'yellow': 6}
+databaseSize = 100
+colorWeightDict = {'red': 1, 'blue': 3, 'yellow': 6, 'green': 2, 'orange': 4, 'purple': 5}
 for i in range(databaseSize):
-    random = np.random.randint(0, 3)
+    random = np.random.randint(0, 6)
     if random == 0:
         database.append(Node('red', i))
     elif random == 1:
         database.append(Node('blue', i))
-    else: 
+    elif random == 2: 
         database.append(Node('yellow', i))
+    elif random == 3: 
+        database.append(Node('green', i))
+    elif random == 4: 
+        database.append(Node('orange', i))
+    elif random == 5: 
+        database.append(Node('purple', i))
+
             
 # find weighted colored node in database between the query range
 numIterations = 1000
-queryRange = BoundingBox(0, 10)
+queryRange = BoundingBox(50, 75)
 
 cwrs = ColoredWeightedRandomSampling() 
 transformedDatabase = cwrs.findTransformedList(database)
@@ -392,19 +404,14 @@ print()
 colorDict = cwrs.colorDict 
 kdTree = cwrs.buildKDTree(database)
 
-def traverseTree(root):
-    if root.left is None and root.right is None:
-        print(root.x_val, root.color)
-        return
-    else:
-        traverseTree(root.left)
-        traverseTree(root.right)
-
-canonicalNodes = cwrs.findCanonicalSetKDTree(kdTree, queryRange)
+nodes = cwrs.queryKDTree(kdTree, queryRange)
 print('Returned nodes:')
-for c in canonicalNodes:
-    print(' - ')
-    traverseTree(c)
+for n in nodes:
+    print(n.x_val, n.color)
+print()
+
+randomNode = cwrs.weightedRandomColorNode(nodes, queryRange, colorWeightDict)
+print(randomNode.x_val, randomNode.color)
 
 # proveUniformRandom(database, query_range, colorDict, numIterations)
 # print()
