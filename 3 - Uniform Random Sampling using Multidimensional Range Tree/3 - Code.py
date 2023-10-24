@@ -253,7 +253,7 @@ for i in range(databaseSize):
 # build the range tree and list of canonical nodes for a given query range 
 rangeTree = buildRangeTree(database, 1)
 x_range = Range(500, 1000)
-y_range = Range(100, 600)
+y_range = Range(400, 600)
 z_range = Range(750, 850)
 queryRange = QueryRange([x_range, y_range, z_range])
 canonicalNodes = findCanonicalSet(rangeTree, queryRange, 1)
@@ -261,13 +261,13 @@ canonicalNodes = findCanonicalSet(rangeTree, queryRange, 1)
 # query for a random node in database between the given query range
 randomNode = uniformRandomNode(canonicalNodes)
 if randomNode != None:
-     print('Query result:', randomNode.getVal(1), randomNode.getVal(2), randomNode.getVal(3), '\n')
+     print('Random node:', randomNode.getVal(1), randomNode.getVal(2), randomNode.getVal(3), '\n')
 
 # ----------------------------------------------------------------------------------------------------------------
 # test below proves code correctness
 
 freqTable = {}
-numIterations = 1000
+numIterations = 2000
 x_min = None
 
 for i in range(numIterations):
@@ -302,11 +302,11 @@ for i in range(numIterations):
 print('Frequencies of random nodes:')
 for x in freqTable:
     val = freqTable[x]
-    while len(x) < 20:
+    while len(x) < 17:
         x = x + " "
     print(x, "%:", val / numIterations)
     
-print('\nRanges of random nodes:')
-print('x: [' + str(x_min) + ',' + str(x_max) + ']')
-print('y: [' + str(y_min) + ',' + str(y_max) + ']')
-print('z: [' + str(z_min) + ',' + str(z_max) + ']')
+print('\nRange of random nodes (actual - theoretical):')
+print('x: [' + str(x_min) + ',' + str(x_max) + '] - [' + str(x_range.min) + ',' + str(x_range.max) + ']')
+print('y: [' + str(y_min) + ',' + str(y_max) + '] - [' + str(y_range.min) + ',' + str(y_range.max) + ']')
+print('z: [' + str(z_min) + ',' + str(z_max) + '] - [' + str(z_range.min) + ',' + str(z_range.max) + ']')

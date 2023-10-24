@@ -25,6 +25,7 @@ Procedure:
 
 
 import numpy as np
+import math
 
 class BoundingBox():
     def __init__(self, x_min, x_max, y_min = None, y_max = None):
@@ -355,14 +356,20 @@ class ColoredWeightedRandomSampling():
         
         # initialize l_max as first element in list
         l_max = L[0]
+        l_max_key = np.random.random() ** (1 / D[l_max.color])
         
-        # assign l_max to l with the greatest key
-        for l in  L:
-            if np.random.random() ** (1 / D[l.color]) > np.random.random() ** (1 / D[l_max.color]):
+        # loop from second node to end of L
+        # find the node with the greatest key in L and assign to l_max
+        for i in range(1, len(L)):
+            l = L[i]
+            l_key = np.random.random() ** (1 / D[l.color])
+            # replace l_max and l_max_key if the current node in the list has a greater key
+            if l_key > l_max_key:
                 l_max = l
+                l_max_key = l_key
         
         # search the range tree of l_max's color and find a random node that satisfies query range
-        canonicalNodes = findCanonicalSetRangeTree(colorDict[l_max.color] , Q)
+        canonicalNodes = findCanonicalSetRangeTree(self.colorDict[l_max.color], Q)
         v = uniformRandomNodeRangeTree(canonicalNodes) 
         
         return v
@@ -371,10 +378,10 @@ class ColoredWeightedRandomSampling():
 # ----------------------------------------------------------------------------------------------------------------
 # example usage of uniform random sampling
 
-# database is a list containing values 0 to 999
+# database is a list of one dimensional nodes to use as database
 database = list()
-databaseSize = 100
-colorWeightDict = {'red': 1, 'blue': 3, 'yellow': 6, 'green': 2, 'orange': 4, 'purple': 5}
+databaseSize = 1000
+colorWeightDict = {'red': 2, 'blue': 3, 'yellow': 4, 'green': 5, 'orange': 6, 'purple': 7}
 for i in range(databaseSize):
     random = np.random.randint(0, 6)
     if random == 0:
@@ -389,32 +396,74 @@ for i in range(databaseSize):
         database.append(Node('orange', i))
     elif random == 5: 
         database.append(Node('purple', i))
-
             
-# find weighted colored node in database between the query range
-numIterations = 1000
-queryRange = BoundingBox(50, 75)
-
+# create ColoredWeightedRandomSampling class and transform database
 cwrs = ColoredWeightedRandomSampling() 
 transformedDatabase = cwrs.findTransformedList(database)
-for point in transformedDatabase:
-    print(point.x_val, point.y_val, point.color)
-print()
 
-colorDict = cwrs.colorDict 
+# build kd tree and one dimensional query range
 kdTree = cwrs.buildKDTree(database)
+queryRange = BoundingBox(300, 500)
 
+# query the kd tree and find a random node from that query result
 nodes = cwrs.queryKDTree(kdTree, queryRange)
-print('Returned nodes:')
-for n in nodes:
-    print(n.x_val, n.color)
-print()
-
 randomNode = cwrs.weightedRandomColorNode(nodes, queryRange, colorWeightDict)
-print(randomNode.x_val, randomNode.color)
+print('Random node:', randomNode.x_val, randomNode.color)
+print('# colors in K-D tree: ', len(nodes), '\n')
 
-# proveUniformRandom(database, query_range, colorDict, numIterations)
-# print()
-#proveWeightedColors(database, query_range, colorDict, numIterations)
+# ----------------------------------------------------------------------------------------------------------------
+# test below proves weightedRandomColorNode has a distribution proportional to the weights of colors
 
+freqList = list()
+numIterations = 10000
+
+for i in range(len(cwrs.colorDict)):
+    freqList.append(0)
+    
+for i in range(numIterations):
+    randomNode = cwrs.weightedRandomColorNode(nodes, queryRange, colorWeightDict)
+    
+    if randomNode.color == 'red':
+        freqList[0] = freqList[0] + 1
+    if randomNode.color == 'blue':
+        freqList[1] = freqList[1] + 1
+    if randomNode.color == 'yellow':
+        freqList[2] = freqList[2] + 1
+    if randomNode.color == 'green':
+        freqList[3] = freqList[3] + 1
+    if randomNode.color == 'orange':
+        freqList[4] = freqList[4] + 1
+    if randomNode.color == 'purple':
+        freqList[5] = freqList[5] + 1
+
+print('Frequencies of colors (actual - theoretical):')
+print('red    %:', freqList[0] / numIterations, '-', math.trunc(2/27*10000)/10000)
+print('blue   %:', freqList[1] / numIterations, '-', math.trunc(3/27*10000)/10000)
+print('yellow %:', freqList[2] / numIterations, '-', math.trunc(4/27*10000)/10000)
+print('green  %:', freqList[3] / numIterations, '-', math.trunc(5/27*10000)/10000)
+print('orange %:', freqList[4] / numIterations, '-', math.trunc(6/27*10000)/10000)
+print('purple %:', freqList[5] / numIterations, '-', math.trunc(7/27*10000)/10000)
+
+freqTable = {}
+x_min = None
+
+for i in range(numIterations):
+    randomNode = cwrs.weightedRandomColorNode(nodes, queryRange, colorWeightDict)
+    if randomNode is None:
+        continue
+    if x_min is None:
+        x_min = randomNode.x_val
+        x_max = x_min
+    if (randomNode.x_val < x_min):
+        x_min = randomNode.x_val
+    if (randomNode.x_val > x_max):
+        x_max = randomNode.x_val
+    key = "("+str(randomNode.x_val)+")"
+    if key in freqTable.keys():
+        freqTable[key] = freqTable[key] + 1 
+    else:
+        freqTable[key] = 1
+
+print('\nRange of random nodes (actual - theoretical):')
+print('[' + str(x_min) + ',' + str(x_max) + '] - [' + str(queryRange.x_min) + ',' + str(queryRange.x_max) + ']')
 

@@ -155,30 +155,6 @@ def weightedRandomColorNode(C):
     # return the node stored at c_max's maxNode 
     return c_max.maxNode
     
-# returns the frequency of all colors within query range
-def proveWeightedColors(P, Q, D, numIterations):
-    freqList = list()
-    
-    for i in range(len(D)):
-        freqList.append(0)
-        
-    for i in range(numIterations):
-        rangeTree = buildRangeTree(P, D)
-        canonicalNodes = findCanonicalSet(rangeTree, Q)
-        
-        random_node = weightedRandomColorNode(canonicalNodes)
-        
-        if random_node.color == 'red':
-            freqList[0] = freqList[0] + 1
-        if random_node.color == 'blue':
-            freqList[1] = freqList[1] + 1
-        if random_node.color == 'yellow':
-            freqList[2] = freqList[2] + 1
-
-    print('red %:', freqList[0] / numIterations)
-    print('blue %:', freqList[1] / numIterations)
-    print('yellow %:', freqList[2] / numIterations)
-    
 # ----------------------------------------------------------------------------------------------------------------
 # example usage of uniform random sampling
 
@@ -201,8 +177,8 @@ queryRange = QueryRange(200, 300)
 canonicalNodes = findCanonicalSet(rangeTree, queryRange)
 
 # query for a random node in database between the given query range
-random_node = weightedRandomColorNode(canonicalNodes)
-print('Query result:', random_node.x_val, random_node.color, '\n')
+randomNode = weightedRandomColorNode(canonicalNodes)
+print('Random node:', randomNode.x_val, randomNode.color, '\n')
 
 # ----------------------------------------------------------------------------------------------------------------
 # test below proves weightedRandomColorNode has a distribution proportional to the weights of colors
@@ -217,19 +193,39 @@ for i in range(numIterations):
     # rebuild the tree and query on that tree
     rangeTree = buildRangeTree(database, colorDict)
     canonicalNodes = findCanonicalSet(rangeTree, queryRange)
+    randomNode = weightedRandomColorNode(canonicalNodes)
     
-    random_node = weightedRandomColorNode(canonicalNodes)
-    
-    if random_node.color == 'red':
+    if randomNode.color == 'red':
         freqList[0] = freqList[0] + 1
-    if random_node.color == 'blue':
+    if randomNode.color == 'blue':
         freqList[1] = freqList[1] + 1
-    if random_node.color == 'yellow':
+    if randomNode.color == 'yellow':
         freqList[2] = freqList[2] + 1
 
-print('Frequencies of colors:')
-print('red %:', freqList[0] / numIterations)
-print('blue %:', freqList[1] / numIterations)
-print('yellow %:', freqList[2] / numIterations)
+print('Frequencies of colors (actual - theoretical):')
+print('red    %:', freqList[0] / numIterations, '-', 1/10)
+print('blue   %:', freqList[1] / numIterations, '-', 3/10)
+print('yellow %:', freqList[2] / numIterations, '-', 6/10)
 
+freqTable = {}
+x_min = None
+
+for i in range(numIterations):
+    # rebuild the tree and query on that tree
+    rangeTree = buildRangeTree(database, colorDict)
+    canonicalNodes = findCanonicalSet(rangeTree, queryRange)
+    randomNode = weightedRandomColorNode(canonicalNodes)
+    
+    if randomNode is None:
+        continue
+    if x_min is None:
+        x_min = randomNode.x_val
+        x_max = x_min
+    if (randomNode.x_val < x_min):
+        x_min = randomNode.x_val
+    if (randomNode.x_val > x_max):
+        x_max = randomNode.x_val
+
+print('\nRange of random nodes (actual - theoretical):')
+print('[' + str(x_min) + ',' + str(x_max) + '] - [' + str(queryRange.x_min) + ',' + str(queryRange.x_max) + ']')
 

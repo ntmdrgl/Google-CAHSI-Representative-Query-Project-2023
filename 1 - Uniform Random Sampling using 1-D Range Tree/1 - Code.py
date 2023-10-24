@@ -160,19 +160,19 @@ for i in range(databaseSize):
 
 # build the range tree and list of canonical nodes for a given query range 
 rangeTree = buildRangeTree(database)
-queryRange = QueryRange(450, 460)
+queryRange = QueryRange(450, 455)
 canonicalNodes = findCanonicalSet(rangeTree, queryRange)
 
 # query for a random node in database between the given query range
 randomNode = uniformRandomNode(canonicalNodes)
 
-print('Query result:', randomNode.x_val, '\n')
+print('Random node:', randomNode.x_val, '\n')
 
 # ----------------------------------------------------------------------------------------------------------------
 # test below proves uniformRandomNode has a uniform distribution and is inbetween query interval
 
 freqTable = {}
-numIterations = 1000
+numIterations = 10000
 x_min = None
 
 for i in range(numIterations):
@@ -195,9 +195,9 @@ for i in range(numIterations):
 print('Frequencies of random nodes:')
 for x in freqTable:
     val = freqTable[x]
-    while len(x) < 10:
+    while len(x) < 7:
         x = x + " "
     print(x, "%:", val / numIterations)
 
-print('\nRange of random nodes:')
-print('[' + str(x_min) + ',' + str(x_max) + ']')
+print('\nRange of random nodes (actual - theoretical):')
+print('[' + str(x_min) + ',' + str(x_max) + '] - [' + str(queryRange.x_min) + ',' + str(queryRange.x_max) + ']')
