@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on: October 12, 2023
+Created on: October 23, 2023
 Authors: Alexander Madrigal, Nathaniel Madrigal
-    
-Problem: Build a 1-D range tree that randomly samples a leaf node according to the probability of its 
-         weighted color dependent on a query range (the same query range will always return the same leaf node)
          
-Procedure:
-    1 - Within the range tree, store within each parent node the child node with the greatest key 
-    2 - Find the set of all canonical nodes within the query range
-    3 - Select the canonical node with the greatest key
+Objective: Randomly sample points with weight colors using a query. Have all randomly selected points be independent of query 
+           (if the query does not change, the points will still be randomly selected)
 
 Procedure:
     1 - For all colors, create a sorted list in increasing order and a 1-D range tree
