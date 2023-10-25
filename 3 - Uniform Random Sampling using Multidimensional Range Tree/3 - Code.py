@@ -5,6 +5,7 @@ Authors: Nathaniel Madrigal, Alexander Madrigal
 
 Objective:
     1. Implement scalable multidimensional range tree
+    2. Sample a node within an axis-aligned query range uniformly at random
 """
 
 import numpy as np

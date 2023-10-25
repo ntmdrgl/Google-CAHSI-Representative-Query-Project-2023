@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on: October 12, 2023
+Created on: October 11, 2023
 Authors: Alexander Madrigal, Nathaniel Madrigal
     
 Problem: Build a 1-D range tree that randomly samples a leaf node according to the probability of its 
