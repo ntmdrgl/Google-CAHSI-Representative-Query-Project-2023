@@ -36,7 +36,6 @@ class Node():
         self.color = color
     left = None
     right = None
-    # weight only applies to range tree
     weight = None
     # box only applies to K-D tree
     box = None
@@ -171,48 +170,53 @@ def uniformRandomNodeRangeTree(C):
     # return leaf node from c_max
     return v
 
-class ColoredWeightedRandomSampling():
-    colorDict = dict()
+class ColoredWeightedRandomSampling():    
+    def __init__(self, colorWeightDict):
+        # dictionary accessing weight for each color
+        self.colorWeightDict = colorWeightDict
     
-    # changes value of colorDict to contain a list of points for each associated color
+    # dictionary accessing list/range tree for each color
+    colorStructDict = dict()
+    
+    # changes value of colorStructDict to contain a list of points for each associated color
     # returns transformed list P', where transformed points p' is set to (p, pred(p)) 
     # for each color, pred(p) is defined as predecessor of p in sorted order
     # P: list of points
     def findTransformedList(self, P):
-        # create a list of points for every color in P stored in colorDict
+        # create a list of points for every color in P stored in colorStructDict
         for p in P:     
             key = p.color
-            # if the color is in colorDict, append p to list
-            if key in self.colorDict.keys():
-                self.colorDict[key].append(p)
-            # if the color is not in colorDict, create list with p
+            # if the color is in colorStructDict, append p to list
+            if key in self.colorStructDict.keys():
+                self.colorStructDict[key].append(p)
+            # if the color is not in colorStructDict, create list with p
             else:
-                self.colorDict[key] = [p]
+                self.colorStructDict[key] = [p]
                 
         P_transformed = list()
         
         # for each colors, access its associated list  
-        for key in self.colorDict.keys():
+        for key in self.colorStructDict.keys():
             # for each list, sort list in increasing x_val
-            self.colorDict[key].sort(key=getX)
+            self.colorStructDict[key].sort(key=getX)
             
             # for each point in list, set the y_val to point's predecessor
-            for i in range(len(self.colorDict[key])):
+            for i in range(len(self.colorStructDict[key])):
                 # if point has no predecessor, set y_val to negative infinity
                 if i == 0:
-                    self.colorDict[key][i].y_val = -np.inf
+                    self.colorStructDict[key][i].y_val = -np.inf
                 # if point has predecessor, set y_val to previous point's x_val
                 else:
-                    self.colorDict[key][i].y_val = self.colorDict[key][i - 1].x_val
+                    self.colorStructDict[key][i].y_val = self.colorStructDict[key][i - 1].x_val
                 # append point's x_val and y_val to P_transformed 
-                P_transformed.append(self.colorDict[key][i])
+                P_transformed.append(self.colorStructDict[key][i])
         
-        # changes colorDict from containing a list of points to containing a range tree of points
-        for key in self.colorDict.keys():
+        # changes colorStructDict from containing a list of points to containing a range tree of points
+        for key in self.colorStructDict.keys():
             # for each color, build a range tree using list
-            colorRangeTree = buildRangeTree(self.colorDict[key])
-            # for each color, set colorDict to its appropriate range tree
-            self.colorDict[key] = colorRangeTree
+            colorRangeTree = buildRangeTree(self.colorStructDict[key])
+            # for each color, set colorStructDict to its appropriate range tree
+            self.colorStructDict[key] = colorRangeTree
         
         # returns transformed list P
         return P_transformed
@@ -232,9 +236,11 @@ class ColoredWeightedRandomSampling():
         # base case, P has one point
         # create leaf node, v with value of point 
         # set v's box to itself
+        # set v's weight to the weight of its color
         if len(P) == 1:
             v = Node(P[0].color, P[0].x_val, P[0].y_val)
             v.box = B
+            v.weight = colorWeightDict[v.color]
         else:
             # depth is even, split box on x_mid (vertical)
             if d % 2 == 0:
@@ -254,6 +260,7 @@ class ColoredWeightedRandomSampling():
                 rightBox = BoundingBox(v.x_val, v.box.x_max, v.box.y_min, v.box.y_max)
                 v.left = self.buildKDTree(P_left, d + 1, leftBox)
                 v.right = self.buildKDTree(P_right, d + 1, rightBox)
+                v.weight = v.left.weight + v.right.weight
                 
             # depth is odd, split box on y_mid (horizontal)
             else:
@@ -273,6 +280,7 @@ class ColoredWeightedRandomSampling():
                 rightBox = BoundingBox(v.box.x_min, v.box.x_max, v.y_val, v.box.y_max)
                 v.left = self.buildKDTree(P_left, d + 1, leftBox)
                 v.right = self.buildKDTree(P_right, d + 1, rightBox)
+                v.weight = v.left.weight + v.right.weight
                 
         return v
     
@@ -299,13 +307,13 @@ class ColoredWeightedRandomSampling():
             
             return L
     
-    # returns a list of all nodes that satisfy query range
+    # returns a list of canonical nodes of query range
     # root: root node of a two dimensional K-D tree
     # Q: query range
     def queryKDTree(self, root, Q):
         # transform Q from 1-D interval [x_min, x_max] 
         # to 2-D bounding box [x_min, x_max] x (-infinity, x_min)
-        L = list()
+        C = list()
         if Q.y_min is None:
             Q.y_min = -np.inf
         if Q.y_max is None:
@@ -314,61 +322,69 @@ class ColoredWeightedRandomSampling():
         # if root is a leaf, check if root's point intersects Q
         if root.left is None and root.right is None:
             if root.x_val >= Q.x_min and root.x_val <= Q.x_max and root.y_val >= Q.y_min and root.y_val < Q.y_max:
-                L = L + self.reportSubtree(root)
+                C = C + self.reportSubtree(root)
             else:
-                return L
+                return C
         # if root is not a leaf
         else:
             # if root's box does not intersect Q, return
             if root.box.x_min > Q.x_max or root.box.x_max < Q.x_min or root.box.y_min >= Q.y_max:
-                return L
+                return C
             
             # if root's box fully intersects Q, append root to list
             elif root.box.x_min >= Q.x_min and root.box.x_max <= Q.x_max and root.box.y_max < Q.y_max:
-                L = L + self.reportSubtree(root)
+                C = C + self.reportSubtree(root)
                 
             # if root's box partially intersects Q, search root's left and right
             else:          
-                L_left = self.queryKDTree(root.left, Q)
-                L_right = self.queryKDTree(root.right, Q)
+                C_left = self.queryKDTree(root.left, Q)
+                C_right = self.queryKDTree(root.right, Q)
                 
-                if L_left:
-                    L = L + L_left
-                if L_right:
-                    L = L + L_right
+                if C_left:
+                    C = C + C_left
+                if C_right:
+                    C = C + C_right
         
-        return L
+        return C
 
     # returns a weighted random color node
-    # L: list of nodes that satisfy query; every node has a unique color
+    # C: list of canonical nodes
     # Q: query range
     # D: dictionary of colors associated with weights
-    def weightedRandomColorNode(self, L, Q, D):
-        # return if L is empty
-        if not L:
-            print('No Nodes found in range')
+    def weightedRandomColorNode(self, C, Q):
+        # return if C is empty
+        if not C:
+            # print('No Nodes found in range')
             return None
         
-        # initialize l_max as first element in list
-        l_max = L[0]
-        l_max_key = np.random.random() ** (1 / D[l_max.color])
+        # find a veighted random canonical node
+        # initialize c_max as first element in list
+        c_max = C[0]
+        c_max_key = np.random.random() ** (1 / self.colorWeightDict[c_max.color])
+        # loop from second node to end of C
+        # find the node with the greatest key in C and assign to c_max
+        for i in range(1, len(C)):
+            c = C[i]
+            c_key = np.random.random() ** (1 / self.colorWeightDict[c.color])
+            # replace c_max and c_max_key if the current node in the list has a greater key
+            if c_key > c_max_key:
+                c_max = c
+                c_max_key = c_key
         
-        # loop from second node to end of L
-        # find the node with the greatest key in L and assign to l_max
-        for i in range(1, len(L)):
-            l = L[i]
-            l_key = np.random.random() ** (1 / D[l.color])
-            # replace l_max and l_max_key if the current node in the list has a greater key
-            if l_key > l_max_key:
-                l_max = l
-                l_max_key = l_key
+        # randomly traverse down and select a leaf node from c_max
+        v = c_max
+        # loop until node v is a leaf
+        while v.left is not None and v.right is not None:
+            # compare keys of left and right children
+            # traverse path with greatest key
+            if (np.random.random() ** (1 / v.left.weight) >= np.random.random() ** (1 / v.right.weight)):
+                v = v.left
+            else:
+                v = v.right
         
-        # search the range tree of l_max's color and find a random node that satisfies query range
-        canonicalNodes = findCanonicalSetRangeTree(self.colorDict[l_max.color], Q)
-        v = uniformRandomNodeRangeTree(canonicalNodes) 
-        
-        return v
-        
+        # search the range tree of v's color and find a random node that satisfies query range
+        canonicalNodes = findCanonicalSetRangeTree(self.colorStructDict[v.color], Q)
+        return uniformRandomNodeRangeTree(canonicalNodes)         
 
 # ----------------------------------------------------------------------------------------------------------------
 # example usage of uniform random sampling
@@ -393,7 +409,7 @@ for i in range(databaseSize):
         database.append(Node('purple', i))
             
 # create ColoredWeightedRandomSampling class and transform database
-cwrs = ColoredWeightedRandomSampling() 
+cwrs = ColoredWeightedRandomSampling(colorWeightDict) 
 transformedDatabase = cwrs.findTransformedList(database)
 
 # build kd tree and one dimensional query range
@@ -401,23 +417,28 @@ kdTree = cwrs.buildKDTree(database)
 queryRange = BoundingBox(300, 500)
 
 # query the kd tree and find a random node from that query result
-nodes = cwrs.queryKDTree(kdTree, queryRange)
-randomNode = cwrs.weightedRandomColorNode(nodes, queryRange, colorWeightDict)
-print('Random node:', randomNode.x_val, randomNode.color)
-print('# colors in K-D tree: ', len(nodes), '\n')
-
+canonicalNodes = cwrs.queryKDTree(kdTree, queryRange)
+randomNode = cwrs.weightedRandomColorNode(canonicalNodes, queryRange)
+if randomNode is not None:
+    print('Random node:', randomNode.x_val, randomNode.color, '\n')
+else:
+    print('No Nodes found in range\n')
 # ----------------------------------------------------------------------------------------------------------------
 # test below proves weightedRandomColorNode has a distribution proportional to the weights of colors
 
 freqList = list()
 numIterations = 10000
 
-for i in range(len(cwrs.colorDict)):
+for i in range(len(cwrs.colorStructDict)):
     freqList.append(0)
-    
+
+for i in range(6):
+    freqList[i] = 0
+
 for i in range(numIterations):
-    randomNode = cwrs.weightedRandomColorNode(nodes, queryRange, colorWeightDict)
-    
+    randomNode = cwrs.weightedRandomColorNode(canonicalNodes, queryRange)
+    if randomNode is None:
+        continue
     if randomNode.color == 'red':
         freqList[0] = freqList[0] + 1
     if randomNode.color == 'blue':
@@ -443,7 +464,7 @@ freqTable = {}
 x_min = None
 
 for i in range(numIterations):
-    randomNode = cwrs.weightedRandomColorNode(nodes, queryRange, colorWeightDict)
+    randomNode = cwrs.weightedRandomColorNode(canonicalNodes, queryRange)
     if randomNode is None:
         continue
     if x_min is None:
@@ -459,6 +480,9 @@ for i in range(numIterations):
     else:
         freqTable[key] = 1
 
-print('\nRange of random nodes (actual - theoretical):')
-print('[' + str(x_min) + ',' + str(x_max) + '] - [' + str(queryRange.x_min) + ',' + str(queryRange.x_max) + ']')
 
+print('\nRange of random nodes (actual - theoretical):')
+if x_min is not None:
+    print('[' + str(x_min) + ',' + str(x_max) + '] - [' + str(queryRange.x_min) + ',' + str(queryRange.x_max) + ']')
+else:
+    print('[NULL,NULL] - [' + str(queryRange.x_min) + ',' + str(queryRange.x_max) + ']')
