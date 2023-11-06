@@ -241,7 +241,7 @@ class ColoredWeightedRandomSampling():
         if len(P) == 1:
             v = Node(P[0].color, P[0].x_val, P[0].y_val)
             v.box = B
-            v.weight = colorWeightDict[v.color]
+            v.weight = self.colorWeightDict[v.color]
         else:
             # depth is even, split box on x_mid (vertical)
             if d % 2 == 0:
@@ -351,7 +351,6 @@ class ColoredWeightedRandomSampling():
     # returns a weighted random color node
     # C: list of canonical nodes
     # Q: query range
-    # D: dictionary of colors associated with weights
     def weightedRandomColorNode(self, C, Q):
         # return if C is empty
         if not C:
@@ -387,103 +386,106 @@ class ColoredWeightedRandomSampling():
         canonicalNodes = findCanonicalSetRangeTree(self.colorStructDict[v.color], Q)
         return uniformRandomNodeRangeTree(canonicalNodes)         
 
-# ----------------------------------------------------------------------------------------------------------------
-# example usage of uniform random sampling
+# # ----------------------------------------------------------------------------------------------------------------
+# # example usage of uniform random sampling
 
-# database is a list of one dimensional nodes to use as database
-database = list()
-databaseSize = 1000
-colorWeightDict = {'red': 2, 'blue': 3, 'yellow': 4, 'green': 5, 'orange': 6, 'purple': 7}
-for i in range(databaseSize):
-    random = np.random.randint(0, 6)
-    if random == 0:
-        database.append(Node('red', i))
-    elif random == 1:
-        database.append(Node('blue', i))
-    elif random == 2: 
-        database.append(Node('yellow', i))
-    elif random == 3: 
-        database.append(Node('green', i))
-    elif random == 4: 
-        database.append(Node('orange', i))
-    elif random == 5: 
-        database.append(Node('purple', i))
+# # database is a list of one dimensional nodes to use as database
+# database = list()
+# databaseSize = 1000
+# colorWeightDict = {'red': 2, 'blue': 3, 'yellow': 4, 'green': 5, 'orange': 6, 'purple': 7}
+# for i in range(databaseSize):
+#     random = np.random.randint(0, 6)
+#     if random == 0:
+#         database.append(Node('red', i))
+#     elif random == 1:
+#         database.append(Node('blue', i))
+#     elif random == 2: 
+#         database.append(Node('yellow', i))
+#     elif random == 3: 
+#         database.append(Node('green', i))
+#     elif random == 4: 
+#         database.append(Node('orange', i))
+#     elif random == 5: 
+#         database.append(Node('purple', i))
             
-# create ColoredWeightedRandomSampling class and transform database
-cwrs = ColoredWeightedRandomSampling(colorWeightDict) 
-transformedDatabase = cwrs.findTransformedList(database)
+# # create ColoredWeightedRandomSampling class and transform database
+# cwrs = ColoredWeightedRandomSampling(colorWeightDict) 
+# transformedDatabase = cwrs.findTransformedList(database)
 
-# build kd tree and one dimensional query range
-kdTree = cwrs.buildKDTree(database)
-queryRange = BoundingBox(300, 500)
+# for node in database:
+#     print(node.x_val, node.y_val)
 
-# query the kd tree and find a random node from that query result
-canonicalNodes = cwrs.queryKDTree(kdTree, queryRange)
-randomNode = cwrs.weightedRandomColorNode(canonicalNodes, queryRange)
-if randomNode is not None:
-    print('Random node:', randomNode.x_val, randomNode.color, '\n')
-else:
-    print('No Nodes found in range\n')
-# ----------------------------------------------------------------------------------------------------------------
-# test below proves weightedRandomColorNode has a distribution proportional to the weights of colors
+# # build kd tree and one dimensional query range
+# kdTree = cwrs.buildKDTree(transformedDatabase)
+# queryRange = BoundingBox(300, 500)
 
-freqList = list()
-numIterations = 10000
+# # query the kd tree and find a random node from that query result
+# canonicalNodes = cwrs.queryKDTree(kdTree, queryRange)
+# randomNode = cwrs.weightedRandomColorNode(canonicalNodes, queryRange)
+# if randomNode is not None:
+#     print('Random node:', randomNode.x_val, randomNode.color, '\n')
+# else:
+#     print('No Nodes found in range\n')
+# # ----------------------------------------------------------------------------------------------------------------
+# # test below proves weightedRandomColorNode has a distribution proportional to the weights of colors
 
-for i in range(len(cwrs.colorStructDict)):
-    freqList.append(0)
+# freqList = list()
+# numIterations = 10000
 
-for i in range(6):
-    freqList[i] = 0
+# for i in range(len(cwrs.colorStructDict)):
+#     freqList.append(0)
 
-for i in range(numIterations):
-    randomNode = cwrs.weightedRandomColorNode(canonicalNodes, queryRange)
-    if randomNode is None:
-        continue
-    if randomNode.color == 'red':
-        freqList[0] = freqList[0] + 1
-    if randomNode.color == 'blue':
-        freqList[1] = freqList[1] + 1
-    if randomNode.color == 'yellow':
-        freqList[2] = freqList[2] + 1
-    if randomNode.color == 'green':
-        freqList[3] = freqList[3] + 1
-    if randomNode.color == 'orange':
-        freqList[4] = freqList[4] + 1
-    if randomNode.color == 'purple':
-        freqList[5] = freqList[5] + 1
+# for i in range(6):
+#     freqList[i] = 0
 
-print('Frequencies of colors (actual - theoretical):')
-print('red    %:', freqList[0] / numIterations, '-', math.trunc(2/27*10000)/10000)
-print('blue   %:', freqList[1] / numIterations, '-', math.trunc(3/27*10000)/10000)
-print('yellow %:', freqList[2] / numIterations, '-', math.trunc(4/27*10000)/10000)
-print('green  %:', freqList[3] / numIterations, '-', math.trunc(5/27*10000)/10000)
-print('orange %:', freqList[4] / numIterations, '-', math.trunc(6/27*10000)/10000)
-print('purple %:', freqList[5] / numIterations, '-', math.trunc(7/27*10000)/10000)
+# for i in range(numIterations):
+#     randomNode = cwrs.weightedRandomColorNode(canonicalNodes, queryRange)
+#     if randomNode is None:
+#         continue
+#     if randomNode.color == 'red':
+#         freqList[0] = freqList[0] + 1
+#     if randomNode.color == 'blue':
+#         freqList[1] = freqList[1] + 1
+#     if randomNode.color == 'yellow':
+#         freqList[2] = freqList[2] + 1
+#     if randomNode.color == 'green':
+#         freqList[3] = freqList[3] + 1
+#     if randomNode.color == 'orange':
+#         freqList[4] = freqList[4] + 1
+#     if randomNode.color == 'purple':
+#         freqList[5] = freqList[5] + 1
 
-freqTable = {}
-x_min = None
+# print('Frequencies of colors (actual - theoretical):')
+# print('red    %:', freqList[0] / numIterations, '-', math.trunc(2/27*10000)/10000)
+# print('blue   %:', freqList[1] / numIterations, '-', math.trunc(3/27*10000)/10000)
+# print('yellow %:', freqList[2] / numIterations, '-', math.trunc(4/27*10000)/10000)
+# print('green  %:', freqList[3] / numIterations, '-', math.trunc(5/27*10000)/10000)
+# print('orange %:', freqList[4] / numIterations, '-', math.trunc(6/27*10000)/10000)
+# print('purple %:', freqList[5] / numIterations, '-', math.trunc(7/27*10000)/10000)
 
-for i in range(numIterations):
-    randomNode = cwrs.weightedRandomColorNode(canonicalNodes, queryRange)
-    if randomNode is None:
-        continue
-    if x_min is None:
-        x_min = randomNode.x_val
-        x_max = x_min
-    if (randomNode.x_val < x_min):
-        x_min = randomNode.x_val
-    if (randomNode.x_val > x_max):
-        x_max = randomNode.x_val
-    key = "("+str(randomNode.x_val)+")"
-    if key in freqTable.keys():
-        freqTable[key] = freqTable[key] + 1 
-    else:
-        freqTable[key] = 1
+# freqTable = {}
+# x_min = None
+
+# for i in range(numIterations):
+#     randomNode = cwrs.weightedRandomColorNode(canonicalNodes, queryRange)
+#     if randomNode is None:
+#         continue
+#     if x_min is None:
+#         x_min = randomNode.x_val
+#         x_max = x_min
+#     if (randomNode.x_val < x_min):
+#         x_min = randomNode.x_val
+#     if (randomNode.x_val > x_max):
+#         x_max = randomNode.x_val
+#     key = "("+str(randomNode.x_val)+")"
+#     if key in freqTable.keys():
+#         freqTable[key] = freqTable[key] + 1 
+#     else:
+#         freqTable[key] = 1
 
 
-print('\nRange of random nodes (actual - theoretical):')
-if x_min is not None:
-    print('[' + str(x_min) + ',' + str(x_max) + '] - [' + str(queryRange.x_min) + ',' + str(queryRange.x_max) + ']')
-else:
-    print('[NULL,NULL] - [' + str(queryRange.x_min) + ',' + str(queryRange.x_max) + ']')
+# print('\nRange of random nodes (actual - theoretical):')
+# if x_min is not None:
+#     print('[' + str(x_min) + ',' + str(x_max) + '] - [' + str(queryRange.x_min) + ',' + str(queryRange.x_max) + ']')
+# else:
+#     print('[NULL,NULL] - [' + str(queryRange.x_min) + ',' + str(queryRange.x_max) + ']')
