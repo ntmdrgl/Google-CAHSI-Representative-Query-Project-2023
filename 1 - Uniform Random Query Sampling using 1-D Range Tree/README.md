@@ -1,4 +1,4 @@
-# Uniform Random Sampling using 1-D Range Tree
+# Uniform Random Query Sampling using 1-D Range Tree
 
 Functionality:
 - Builds a one dimensional range tree from a list of one dimensional points

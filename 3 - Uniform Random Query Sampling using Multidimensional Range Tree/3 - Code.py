@@ -24,12 +24,6 @@ class Node():
     def getVal(self, d):
         return self.arrValues[d - 1]
     
-    # less-than function; used to sort Nodes in sortNodes function
-    def le(self, other, d):
-        if self.getVal(d) < other.getVal(d):
-            return True
-        elif self.getVal(d) >= other.getVal(d):
-            return False
     left = None
     right = None
     weight = None
@@ -62,11 +56,11 @@ def partition(arrNode, low, high, d):
     while True:
         while True:
             i = i + 1
-            if not arrNode[i].le(pivot, d):
+            if arrNode[i].getVal(d) >= pivot.getVal(d):
                 break
         while True:
             j = j - 1
-            if not pivot.le(arrNode[j], d):
+            if arrNode[j].getVal(d) <= pivot.getVal(d):
                 break
         if i < j:
             (arrNode[i], arrNode[j]) = (arrNode[j], arrNode[i])
@@ -122,6 +116,7 @@ def buildRangeTree(P, d):
 # returns a node inside the query range which splits to all subleafs in query range
 # root: root node of 1-D range tree
 # Q: query range
+# d: dimension
 def findSplitNode(root, Q, d):
     v = root
     # loop until node v is at a leaf or is inside the query range
@@ -133,6 +128,9 @@ def findSplitNode(root, Q, d):
     return v
 
 # return a list of the set of all canonical nodes
+# root: root node of 1-D range tree
+# Q: query range
+# d: starting dimension, always starts at one
 def findCanonicalSet(root, Q, d):    
     # start search from the split node, sp and add valid canonical nodes to the set of all canonical nodes, C
     C = list()
@@ -192,8 +190,6 @@ def findCanonicalSet(root, Q, d):
 # returns a uniform random node from the set of all canonical nodes 
 # C: set of all canonical nodes
 def uniformRandomNode(C):
-    # concept: returning the node with greatest key is equal to returning a weighted random node
-    
     # return if C is empty
     if not C:
         print('No Nodes found in range')
