@@ -10,8 +10,9 @@ Procedure:
     1 - For all colors, create a sorted list in increasing order and a 1-D range tree
     2 - For all point in all colored lists, insert (point, predecessor of point) in a 2-D list
     3 - Build a K-D tree using the 2-D list of points
-    4 - Make a list of points using the query range [x_min, x_max] x (-infinity, x_min)
-    5 - Since every point has a different color, randomly select a point with probabilies based 
+    4 - Find canonical set using the query range [x_min, x_max] x (-infinity, x_min)
+    5 - Select one canonical node with probabilities based on the weight of the canonical node 
+    6 - Since every point has a different color, randomly select a point with probabilies based 
         on weight of the point's color
     6 - Using the color of the selected point, find a uniform random node on the range tree 
         associated with that color 
@@ -322,7 +323,7 @@ class ColoredWeightedRandomSampling():
         # if root is a leaf, check if root's point intersects Q
         if root.left is None and root.right is None:
             if root.x_val >= Q.x_min and root.x_val <= Q.x_max and root.y_val >= Q.y_min and root.y_val < Q.y_max:
-                C = C + self.reportSubtree(root)
+                C.append(root)
             else:
                 return C
         # if root is not a leaf
@@ -333,7 +334,7 @@ class ColoredWeightedRandomSampling():
             
             # if root's box fully intersects Q, append root to list
             elif root.box.x_min >= Q.x_min and root.box.x_max <= Q.x_max and root.box.y_max < Q.y_max:
-                C = C + self.reportSubtree(root)
+                C.append(root)
                 
             # if root's box partially intersects Q, search root's left and right
             else:          
