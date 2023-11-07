@@ -1,6 +1,7 @@
-# # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import IWRS.Code as iwrs 
+from matplotlib import pyplot as plt
 import math
 
 databaseSize = 1000
@@ -40,7 +41,13 @@ for i in range(numIterations):
         continue
     colorCounts[int(randomNode.color) - 1] = colorCounts[int(randomNode.color) - 1] + 1
     
-# print frequencies of colors
-for i in range(1, numColors + 1):
-    print(i, '%:', colorCounts[i - 1] / numIterations)
-    
+# find frequencies of colors
+colorFreqs = [None] * numColors
+for i in range(numColors):
+    colorFreqs[i] = colorCounts[i] / numIterations
+
+plt.bar(range(1, numColors + 1), colorFreqs)
+plt.title('Test 1: Frequencies of colors from random query sampling')
+plt.xlabel('Color')
+plt.ylabel('Frequency')
+plt.show()   
