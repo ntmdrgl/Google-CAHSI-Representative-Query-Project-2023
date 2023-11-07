@@ -2,6 +2,7 @@
 
 import IWRS.Code as iwrs 
 from matplotlib import pyplot as plt
+import time
 import math
 
 databaseSize = 1000
@@ -24,7 +25,9 @@ cwrs = iwrs.ColoredWeightedRandomSampling(colorWeightDict)
 transformedDatabase = cwrs.findTransformedList(database)
 
 # build kdtree, define query range, find canonical nodes
+t = time.time_ns()
 kdTree = cwrs.buildKDTree(transformedDatabase)
+print('Build time:', (time.time_ns() - t) / (10 ** 6), 'ms')
 queryRange = iwrs.BoundingBox(41, 83)
 canonicalNodes = cwrs.queryKDTree(kdTree, queryRange)
 
@@ -35,11 +38,13 @@ for i in range(numColors):
 
 # find color counts of random nodes after many iterations
 numIterations = 1000
+t = time.time_ns()
 for i in range(numIterations):
     randomNode = cwrs.weightedRandomColorNode(canonicalNodes, queryRange)
     if randomNode is None:
         continue
     colorCounts[int(randomNode.color) - 1] = colorCounts[int(randomNode.color) - 1] + 1
+print('Avg query time:', ((time.time_ns() - t) / (10 ** 6)) / numIterations, 'ms')
     
 # find frequencies of colors
 colorFreqs = [None] * numColors
