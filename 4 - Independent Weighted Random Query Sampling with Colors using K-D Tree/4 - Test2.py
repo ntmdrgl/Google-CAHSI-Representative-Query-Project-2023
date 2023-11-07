@@ -54,7 +54,7 @@ colorFreqs = [None] * numColors
 for i in range(numColors):
     colorFreqs[i] = colorCounts[i] / numIterations
 
-plt.bar(range(1, numColors + 1), colorFreqs)
+plt.bar(range(1, numColors + 1), colorFreqs, color='orange')
 plt.title('Test 2: Frequencies of colors from random query sampling')
 plt.xlabel('Color')
 plt.ylabel('Frequency')
