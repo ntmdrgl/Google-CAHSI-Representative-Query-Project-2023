@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on: November, 2023
+Created on: November 16, 2023
 Authors: Nathaniel Madrigal, Alexander Madrigal
 """
 

@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Created on: November, 2023
+Created on: November 16, 2023
 Authors: Nathaniel Madrigal, Alexander Madrigal
 """
 
 import KDTree
 import numpy as np
-from matplotlib import pyplot as plt
+import pandas as pd
 import math
 import time
+from matplotlib import pyplot as plt
 
 
 input_size = 40000
@@ -20,21 +21,12 @@ num_colors = 10
 color_weight_dict = dict()
 for i in range(1, num_colors + 1):
     color_weight_dict[str(i)] = 1000 * (0.5 * math.exp(-0.5 * i))
+    # color_weight_dict[str(i)] = 10
 
 for i, point in enumerate(dataset):
     colored_point = (np.random.randint(1, num_colors), point)
     dataset[i] = colored_point
     
-# dataset now contains a list of tuples
-# the first element in the tuple is the color, the second is the list of dimensional coordinates
-
-min_coords = ((1 - 0) * rng.random((num_dim, )) + 0).tolist()
-max_coords = ((1 - 0) * rng.random((num_dim, )) + 0).tolist()
-for dim in range(num_dim):
-    if min_coords[dim] > max_coords[dim]:
-        (min_coords[dim], max_coords[dim]) = (max_coords[dim], min_coords[dim])
-
-# print('avg distance:', distance)
 t = time.time_ns()
 tree = KDTree.KDTree(dataset, color_weight_dict)
 print('Build time:', ((time.time_ns() - t) / (10 ** 6)), 'ms')
@@ -47,6 +39,7 @@ for i in range(num_colors):
 num_iterations = 100
         
 t_sum = 0
+none_count = 0
 for i in range(num_iterations):
     # create query range
     min_coords = (0.70 - 0) * rng.random((num_dim, )) + 0
@@ -61,11 +54,14 @@ for i in range(num_iterations):
     t_sum = t_sum + (t_end - t_start)
     
     if random_node is None:
+        none_count = none_count + 1
         continue
     
     # add frequency of random node's color
     color_counts[int(random_node.color) - 1] = color_counts[int(random_node.color) - 1] + 1
-print('Avg query time:', (t_sum / (10 ** 6)) / num_iterations, 'ms')
+print(f"Avg query time ({num_iterations} trials): {(t_sum / (10 ** 6)) / num_iterations} ms")
+
+print('Success rate:', (num_iterations - none_count) / num_iterations)
 
 # find frequencies of colors
 color_freqs = [None] * num_colors
@@ -73,7 +69,7 @@ for i in range(num_colors):
     color_freqs[i] = color_counts[i] / num_iterations
 
 plt.bar(range(1, num_colors + 1), color_freqs, color='orange')
-plt.title('Test 2: Frequencies of colors from random query sampling')
+plt.title('Frequencies of colors from random query sampling')
 plt.xlabel('Color')
 plt.ylabel('Frequency')
 plt.show()
