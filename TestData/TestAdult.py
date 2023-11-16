@@ -18,15 +18,15 @@ columnsUsedColor = ['race', 'sex']
 dataNum = pd.read_csv('adult.data', sep=',', header=None, names=columnNames, usecols=columnsUsedNum)
 dataColor = pd.read_csv('adult.data', sep=',', header=None, names=columnNames, usecols=columnsUsedColor)
 # generate dataframe using data
-dataFrameNum = pd.DataFrame(dataNum)
-dataFrameColor = pd.DataFrame(dataColor)
+dataframeNum = pd.DataFrame(dataNum)
+dataframeColor = pd.DataFrame(dataColor)
 
-print(dataFrameNum)
-print(dataFrameColor)
+print(dataframeNum)
+print(dataframeColor)
 
 #generate dataset (list of lists) from dataframe
-datasetNum = dataFrameNum.to_numpy().tolist()
-dataSetColor = dataFrameNum.to_numpy().tolist()
+datasetNum = dataframeNum.to_numpy().tolist()
+datasetColor = dataframeColor.to_numpy().tolist()
 
 races = ['White', 'Asian-Pac-Islander', 'Amer-Indian-Eskimo', 'Other', 'Black']
 sexes = ['Male', 'Female']
