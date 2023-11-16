@@ -14,8 +14,9 @@ class KDTree():
     
     class Node():
         def __init__(self, colored_coord):
-            (self.color, self.coord) = colored_coord
-            self.color = str(self.color)
+            (color, coord) = colored_coord
+            self.color = str(color)
+            self.coord = coord.copy()
             
         left = None
         right = None
@@ -25,9 +26,9 @@ class KDTree():
         
     class BoundingBox():
         def __init__(self, min_coords, max_coords):
-            self.min_coords = min_coords
-            self.max_coords = max_coords
-        
+            self.min_coords = min_coords.copy()
+            self.max_coords = max_coords.copy() 
+    
     # returns the root of KD tree
     # dataset: list of tuples which contains color and list of coordinates
     # depth: depth of tree
@@ -80,14 +81,12 @@ class KDTree():
             # recursively call buildRangeTree on P's left & right sublists to assign v's left & right children 
             v = self.Node(dataset[mid])
             v.box = B
+
+            box_left = self.BoundingBox(v.box.min_coords, v.box.max_coords)
+            box_left.max_coords[curr_dim] = v.coord[curr_dim]
+            box_right = self.BoundingBox(v.box.min_coords, v.box.max_coords)
+            box_right.min_coords[curr_dim] = v.coord[curr_dim]
             
-            max_coords_left = v.box.max_coords
-            max_coords_left[curr_dim] = v.coord[curr_dim]
-            min_coords_right = v.box.min_coords
-            min_coords_right[curr_dim] = v.coord[curr_dim]
-            
-            box_left = self.BoundingBox(v.box.min_coords, max_coords_left)
-            box_right = self.BoundingBox(min_coords_right, v.box.max_coords)
             
             v.left = self.build_kdtree(dataset_left, depth + 1, box_left)
             v.right = self.build_kdtree(dataset_right, depth + 1, box_right)
@@ -128,6 +127,87 @@ class KDTree():
             pi = self.partition(dataset, low, high, dim)
             self.sort_dataset(dataset, low, pi, dim)
             self.sort_dataset(dataset, pi + 1, high, dim)
+    
+    # returns a random sample within the range 
+    # min_coords: a list of minimum boundaries in all dimensions
+    # max_coords: a list of maximum boundaries in all dimensions
+    def query_random_sample(self, min_coords, max_coords):
+        C = self.find_canonical_nodes(min_coords, max_coords)
+        
+        # return if C is empty
+        if not C:
+            return None
+        
+        # initialize c_max as first element in list
+        c_max = C[0]
+        
+        # assign max_node to canonical node with the greatest key
+        for c in  C:
+            if c.key > c_max.key:
+                c_max = c
+                
+        # return the node stored at c_max's maxNode 
+        return c_max.maxNode
+    
+    # returns a list of all canonical nodes within the range 
+    # min_coords: a list of minimum boundaries in all dimensions
+    # max_coords: a list of maximum boundaries in all dimensions
+    # root: root of kdtree or subtree in kdtree
+    def find_canonical_nodes(self, min_coords, max_coords, root = None):
+        if len(min_coords) != self.max_dimension or len(max_coords) != self.max_dimension:
+            raise Exception('Incorrect number of dimensions in list argument')
+        
+        if root is None:
+            root = self.root
+            
+        # create an empty list to contain all canonical nodes within range
+        C = list()
+        
+        # if root is a leaf, check if root's coordinate intersects range
+        if root.left is None and root.right is None:
+            coordinate_intersects = True
+            for dim in range(self.max_dimension):
+                if root.coord[dim] < min_coords[dim] or root.coord[dim] > max_coords[dim]:
+                    coordinate_intersects = False
+                
+            # append canonical node if coordinate intersects range
+            if coordinate_intersects:
+                C.append(root)
+            else:
+                return C
+            
+        # if root is not a leaf
+        else:
+            # check whether root's box does not intersect range or is fully contained in range
+            box_fully_intersects = True
+            
+            for dim in range(self.max_dimension):
+                # if root's box does not intersect range, return
+                if root.box.min_coords[dim] > max_coords[dim] or root.box.max_coords[dim] < min_coords[dim]:
+                    return C
+                
+                # if root's box is not contained in range, break loop
+                if root.box.min_coords[dim] < min_coords[dim] or root.box.max_coords[dim] > max_coords[dim]:
+                    box_fully_intersects = False
+                    break
+            
+            # if root's box fully intersects range, append root to list
+            if box_fully_intersects:
+                C.append(root)
+            
+            # if root's box partially intersects range, search root's left and right
+            else:          
+                C_left = self.find_canonical_nodes(min_coords, max_coords, root.left)
+                C_right = self.find_canonical_nodes(min_coords, max_coords, root.right)
+                
+                if C_left:
+                    C = C + C_left
+                if C_right:
+                    C = C + C_right
+        
+        return C
+        
+            
         
     
 
