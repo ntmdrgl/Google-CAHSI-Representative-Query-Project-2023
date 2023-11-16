@@ -29,6 +29,7 @@ dataset = dataframe.to_numpy().tolist()
 races = [' White', ' Asian-Pac-Islander', ' Amer-Indian-Eskimo', ' Other', ' Black']
 sexes = [' Male', ' Female']
 
+# assign each color to an integer value
 color_int_dict = dict()
 i = 1
 for race in races:
@@ -43,17 +44,22 @@ for i, point in enumerate(dataset):
     colored_point = (color_int_dict[race + "/" + sex], point)
     dataset[i] = colored_point
 
-color_int_dict = dict()
-i = 1
-for race in races:
-    for sex in sexes:
-        color_int_dict[race + "/" + sex] = i
-        i = i + 1
+num_colors = len(color_int_dict)
+num_dim = len(dataset[0][1])
+
+color_freq_list = list()
+for i in range(num_colors):
+    color_freq_list.append(0)
+
+for color, coord in dataset:
+    color_freq_list[int(color) - 1] = color_freq_list[int(color) - 1] + 1 
 
 color_weight_dict = dict()
+color_weight_list = list()
 for i in range(1, len(color_int_dict) + 1):
-    color_weight_dict[str(i)] = 1000 * (0.5 * math.exp(-0.5 * i))
-    # color_weight_dict[str(i)] = 10
+    # color_weight_dict[str(i)] = 1000 * (0.5 * math.exp(-0.5 * i))
+    color_weight_dict[str(i)] = 1 / (color_freq_list[i - 1] / len(dataset))
+    color_weight_list.append(1 / (color_freq_list[i - 1] / len(dataset)))
     
 print(f"Input size: {len(dataset)}")
 print(f"Number of dimensions: {len(dataset[0][1])}\n")    
@@ -63,9 +69,6 @@ tree = KDTree.KDTree(dataset, color_weight_dict)
 print('Build time:', ((time.time_ns() - t) / (10 ** 6)), 'ms')
 
 # initialize counts of colors to 0
-num_colors = len(color_int_dict)
-num_dim = len(dataset[0][1])
-
 color_counts = list()
 for i in range(num_colors):
     color_counts.append(0)
@@ -120,6 +123,12 @@ print('Success rate:', (num_iterations - none_count) / num_iterations)
 color_freqs = [None] * num_colors
 for i in range(num_colors):
     color_freqs[i] = color_counts[i] / num_iterations
+
+plt.bar(range(1, num_colors + 1), color_weight_list, color='blue')
+plt.title('Weights of colors')
+plt.xlabel('Color')
+plt.ylabel('Weight')
+plt.show()
 
 plt.bar(range(1, num_colors + 1), color_freqs, color='orange')
 plt.title('Frequencies of colors from random query sampling')
