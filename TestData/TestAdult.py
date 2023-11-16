@@ -26,7 +26,7 @@ print(dataFrameColor)
 
 #generate dataset (list of lists) from dataframe
 datasetNum = dataFrameNum.to_numpy().tolist()
-dataFrameColor = dataFrameNum.to_numpy().tolist()
+dataSetColor = dataFrameNum.to_numpy().tolist()
 
 races = ['White', 'Asian-Pac-Islander', 'Amer-Indian-Eskimo', 'Other', 'Black']
 sexes = ['Male', 'Female']
