@@ -10,7 +10,8 @@ class KDTree():
     def __init__(self, dataset, color_weight_dict):
         self.max_dimension = len(dataset[0][1])
         self.color_weight_dict = color_weight_dict
-        self.root = self.build_kdtree(dataset)        
+        self.root = self.build_kdtree(dataset)   
+        self.color_counts = list(range(len(color_weight_dict)))
     
     class Node():
         def __init__(self, colored_coord):
@@ -138,6 +139,8 @@ class KDTree():
         if not C:
             return None
         
+        self.update_color_counts(C)
+        
         # initialize c_max as first element in list
         c_max = C[0]
         
@@ -149,6 +152,24 @@ class KDTree():
         # return the node stored at c_max's maxNode 
         return c_max.maxNode
     
+    # updates list containing counts of colors under a list of canonical nodes
+    # C: canonical nodes
+    def update_color_counts(self, C):
+        for node in C:
+            self.update_color_counts_util(node)
+        
+    def update_color_counts_util(self, node):
+        if node is None:
+            return
+        
+        # increment color counts if node is leaf
+        if node.left is None and node.right is None:
+            self.color_counts[int(node.color) - 1] += 1
+            return
+            
+        self.update_color_counts_util(node.left)
+        self.update_color_counts_util(node.right)
+        
     # returns a list of all canonical nodes within the range 
     # min_coords: a list of minimum boundaries in all dimensions
     # max_coords: a list of maximum boundaries in all dimensions
@@ -166,9 +187,11 @@ class KDTree():
         # if root is a leaf, check if root's coordinate intersects range
         if root.left is None and root.right is None:
             coordinate_intersects = True
+            
             for dim in range(self.max_dimension):
                 if root.coord[dim] < min_coords[dim] or root.coord[dim] > max_coords[dim]:
                     coordinate_intersects = False
+                    break
                 
             # append canonical node if coordinate intersects range
             if coordinate_intersects:
