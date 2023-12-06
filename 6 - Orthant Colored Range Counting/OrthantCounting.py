@@ -9,7 +9,8 @@ In 2 dimensions:
     - Covers region [-inf, a] x [-inf, b]
 
 Objective:
-- Build data structure to quickly count number of colors from points intersecting Orthant query range
+- Build data structure to quickly return a random colored point from points intersecting Orthant query range
+    - color returns in probability proportional to weight of color
 
 """
 
