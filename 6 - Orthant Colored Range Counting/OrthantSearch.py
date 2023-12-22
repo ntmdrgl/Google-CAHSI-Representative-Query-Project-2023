@@ -21,7 +21,7 @@ import math
 import time
 from matplotlib import pyplot as plt
 
-input_size = 10000
+input_size = 1000
 num_dim = 2
 num_colors = 10
 
@@ -46,7 +46,7 @@ for idx in range(len(dataset)):
 tree = KDTree.KDTree(dataset, color_weight_dict)    
 
 # query num_iterations times and count the colors of query results
-num_iterations = 1000
+num_iterations = 10000
 color_counts = [0] * num_colors
 orthant = [random.random(), random.random()]
 for i in range(num_iterations):        
