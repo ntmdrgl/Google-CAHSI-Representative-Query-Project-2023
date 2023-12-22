@@ -14,14 +14,14 @@ Objective:
 
 """
 
-import RangeTree
+import KDTree
 import numpy as np
 import random
 import math
 import time
 from matplotlib import pyplot as plt
 
-input_size = 100000
+input_size = 10000
 num_dim = 2
 num_colors = 10
 
@@ -41,14 +41,16 @@ for i in range(1, num_colors + 1):
 for idx in range(len(dataset)):
     color = np.random.randint(1, num_colors)
     dataset[idx].append(color)
-       
-tree = RangeTree.RangeTree(dataset, color_weight_dict)    
 
+# build tree       
+tree = KDTree.KDTree(dataset, color_weight_dict)    
+
+# query num_iterations times and count the colors of query results
 num_iterations = 1000
 color_counts = [0] * num_colors
 orthant = [random.random(), random.random()]
 for i in range(num_iterations):        
-    random_node = tree.query_range_tree(orthant)
+    random_node = tree.query_random_node(orthant)
     if random_node is not None:
         color_counts[random_node.color - 1] += 1
     
