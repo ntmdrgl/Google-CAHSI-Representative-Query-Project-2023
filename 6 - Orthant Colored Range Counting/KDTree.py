@@ -115,10 +115,6 @@ class KDTree():
             # split dataset on median node on curr_dim
             curr_dim = depth % self.kdtree_dim
             self.sort_dataset(dataset, 0, len(dataset) - 1, curr_dim)  
-            
-            # print('sorted?')
-            # for i in range(len(dataset)):
-            #       print(dataset[i].coords[curr_dim])
                       
             if len(dataset) % 2 == 0:
                 mid = (len(dataset) // 2) - 1
@@ -237,11 +233,7 @@ class KDTree():
             
         # if root is not a leaf
         else:
-            if self.kdtree_dim == 3: 
-                # print('min', root.box.min_coords)
-                # print('max', root.box.max_coords)
-                # print('orthant', orthant)
-                
+            if self.kdtree_dim == 3:              
                 # root.box has no intersection with orthant
                 if root.box.min_coords[0] > orthant[0] or root.box.min_coords[1] > orthant[1] or root.box.max_coords[2] <= orthant[1]:
                     return C
