@@ -2,6 +2,37 @@
 """
 Created on: November 16, 2023
 Authors: Nathaniel Madrigal, Alexander Madrigal
+
+Objective:
+- Create a KDTree structure which queries a random point within a rectangular range. Points are queried
+  proportional to the weight of their associated color.
+  
+- The output of a query search is dependent to the rectangular range (searching the same range returns the
+  same output)
+    
+Notable Class Functions:
+- build_kdtree: Given a list of points, recursively builds the KDTree by splitting the inputted list by the 
+  median point on the current dimension where the recursive function is called on the two sublists. Each recursive 
+  call proceeds to split the list based on values of the next dimension (wrap around). At the base case where the 
+  list has one element, a leaf node is created with a 'key' is calculated of the form: {u ** [1 / w]} where u is a 
+  random number from 0-1 and w is the weight of the node's 'color'. Each leqf node will also contain a 'maxnode'
+  pointer to itself. When creating an internal node, the internal node's 'key' is set to greatest 'key' out of
+  its two children. The internal node's 'maxnode' pointer will be the same as the 'maxnode' of the child with
+  the greatest 'key'. The function returns the root of the kdtree.
+  
+- find_canonical_nodes: Given the root of a KDTree and rectangular region, recursively searches for nodes which 
+  its children are fully contained in the rectangular region called canonical nodes. The base case where root is
+  a leaf node simply checks if the node's coordinates are within the rectangular region and adds the root node to 
+  a list of canonical nodes if so. When the root is not a leaf the function must check if the root's 'box' 1. fully 
+  interests, 2. has no intersect, or 3. partially intersects with the rectangular region. When root's 'box' fully 
+  intersects, the root is added to the list of canonical nodes. When root's 'box' has no intersection, function 
+  returns. In the recursive case where a partial intersect is found, a recursive function is called on the root's 
+  two children. The function returns a list containing all canonical nodes.
+  
+- query_random_sample: First calls the find_canonical_nodes function. Given a list of canonical nodes, finds
+  the canonical node with the greatest key and returns that node's 'maxnode' pointer. 
+
+    
 """
 
 import numpy as np

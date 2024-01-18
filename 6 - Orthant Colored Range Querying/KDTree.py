@@ -1,7 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-Created on: November 16, 2023
+Created on: November 29, 2023
 Authors: Nathaniel Madrigal, Alexander Madrigal
+
+Objective:
+- Create a KDTree structure which queries a random point within an orthant range (rectangular region
+  that is unbounded on each dimension). Points are queried proportional to the weight of their associated color.
+- 
+    
+Notable Class Functions:
+- transform_dataset:
+    
+- build_kdtree:
+    
+- query_random_node:
+    
+- find_canonical_nodes:
+
 """
 
 import numpy as np
