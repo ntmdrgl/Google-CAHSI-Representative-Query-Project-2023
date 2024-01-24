@@ -15,3 +15,9 @@ data = pd.read_csv('2d_dataset.txt', sep=',', header=None, names=['x', 'y'], low
 dataframe = pd.DataFrame(data)
 
 dataset = dataframe.to_numpy().tolist()
+
+# color 0: 1-1725
+# color 1: 1726-39805
+# color 2: 39806-334533
+# color 3: 334534-1039726
+# color 4: 1039727-4110608
