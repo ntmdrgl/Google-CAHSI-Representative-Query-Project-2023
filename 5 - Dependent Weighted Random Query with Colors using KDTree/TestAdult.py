@@ -77,7 +77,6 @@ for race in races:
         i = i + 1
 
 num_colors = len(color_int_dict)
-
 print(f"Input size: {len(datasetNum)}")
 print(f"Number of dimensions: {num_dim}")
 print(f"Number of colors: {num_colors}\n")  
@@ -115,7 +114,7 @@ for i in range(1, num_build_iterations + 1):
     # print(f'Build trial #{i}:')
     t = time.time_ns()
     tree = KDTree.KDTree(dataset, color_weight_dict)
-    print('Build time:', ((time.time_ns() - t) / (10 ** 6)), 'ms')
+    print('Build time:', ((time.time_ns() - t) / (10 ** 9)), 'seconds')
     
     min = [None] * num_dim
     max = [None] * num_dim
@@ -165,7 +164,7 @@ for i in range(1, num_build_iterations + 1):
         # add frequency of random node's color
         color_counts[int(random_node.color) - 1] = color_counts[int(random_node.color) - 1] + 1
     
-    print(f"Avg query time ({num_query_iterations} trials): {(t_sum / (10 ** 6)) / num_query_iterations} ms")
+    print(f"Avg query time ({num_query_iterations} trials): {(t_sum / (10 ** 6)) / num_query_iterations} miliseconds")
     success_rate = (num_query_iterations - none_count) / num_query_iterations
     print('Success rate:', success_rate, '\n')
 
