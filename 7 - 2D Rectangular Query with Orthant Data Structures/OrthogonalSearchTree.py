@@ -8,21 +8,38 @@ import numpy as np
 
 class OrthogonalSearchTree():
     def __init__(self, dataset, color_weights):
-        self.num_dim = 3
+        self.num_dim = 6
         self.num_colors = len(color_weights)
         
         self.color_weights = color_weights.copy()
+        self.last_id = 0
         self.root = self.build_kdtree(dataset)
-        
+            
     class Node():
         def __init__(self, point):
             self.coords = point.copy()
             self.color = self.coords.pop()
             
+            self.isTypeLeft = self.coords.pop()
+            if self.isTypeLeft:
+                self.orig_coords = [self.coords[1], self.coords[5]]
+            else:
+                self.orig_coords = [self.coords[1], self.coords[4]]
+        
+        isTypeLeft = None
+        orig_coords = None
+        
         left = None
         right = None
         box = None
         weight = None
+        search_weight = None
+        count = None
+        node_id = None
+    
+    def get_id(self):
+        return self.last_id
+        self.last_id += 1
         
     class BoundingBox():
         def __init__(self, min_coords, max_coords):
@@ -49,13 +66,18 @@ class OrthogonalSearchTree():
                         
             box = self.BoundingBox(min_coords, max_coords)
         
+        if len(dataset) <= 0:
+            return None
+        
         # base case, dataset has one node v
         # set v's box to itself
         # set v's weight to the weight of its color
         if len(dataset) == 1:
             v = self.Node(dataset[0])
             v.weight = self.color_weights[v.color]
+            v.count = 1
             v.box = box
+            v.node_id = self.get_id()
             
         # dataset has more than one node
         else:         
@@ -67,7 +89,7 @@ class OrthogonalSearchTree():
                 mid = (len(dataset) // 2) - 1
             else:
                 mid = len(dataset) // 2
-                
+            
             dataset_left = dataset[:mid + 1]
             dataset_right = dataset[mid + 1:]
             
@@ -87,8 +109,69 @@ class OrthogonalSearchTree():
             
             # assign v's weight to the sum of its childrens weights
             v.weight = v.left.weight + v.right.weight
-                
+            v.count = v.left.count + v.right.count + 1
+            v.node_id = self.get_id()              
+            
         return v
+        
+    # returns a random sample within the range 
+    def report_colors(self, min_coords, max_coords):
+        C = self.find_canonical_nodes(min_coords, max_coords, self.root)
+        return C
+    
+    # returns a list of all canonical nodes within the range 
+    # root: root of kdtree or subtree in kdtree
+    def find_canonical_nodes(self, min_coords, max_coords, root):          
+        # create an empty list to contain all canonical nodes within range
+        C = list()
+        
+        # if root is a leaf, check if root's coordinate intersects range
+        if root.left is None and root.right is None:
+            coordinate_intersects = True
+            
+            for dim in range(self.num_dim):
+                if root.coords[dim] < min_coords[dim] or root.coords[dim] > max_coords[dim]:
+                    coordinate_intersects = False
+                    break
+                
+            # append canonical node if coordinate intersects range
+            if coordinate_intersects:
+                C.append(root)
+                # print("leaf intersects")
+            else:
+                pass
+            
+        # if root is not a leaf
+        else:
+            # check whether root's box does not intersect range or is fully contained in range
+            box_fully_intersects = True
+            
+            for dim in range(self.num_dim):
+                # if root's box does not intersect range, return
+                if root.box.min_coords[dim] > max_coords[dim] or root.box.max_coords[dim] < min_coords[dim]:
+                    return C
+                
+                # if root's box is not contained in range, break loop
+                if root.box.min_coords[dim] < min_coords[dim] or root.box.max_coords[dim] > max_coords[dim]:
+                    box_fully_intersects = False
+                    break
+            
+            # if root's box fully intersects range, append root to list
+            if box_fully_intersects:
+                # print("fully intersects")
+                C.append(root)
+                
+            # if root's box partially intersects range, search root's left and right
+            else:
+                C_left = self.find_canonical_nodes(min_coords, max_coords, root.left)
+                C_right = self.find_canonical_nodes(min_coords, max_coords, root.right)
+                
+                if C_left:
+                    C = C + C_left
+                if C_right:
+                    C = C + C_right
+        
+        return C
     
     # sort_dataset implementation to sort dataset in dataset
     def sort_dataset(self, dataset, low, high, dim):
@@ -115,75 +198,3 @@ class OrthogonalSearchTree():
                 (dataset[i], dataset[j]) = (dataset[j], dataset[i])
             else:
                 return j
-        
-    # returns a random sample within the range 
-    def report_colors(self, orthant, isTypeLeft):
-        if isTypeLeft:
-            C = self.find_canonical_nodes_left(orthant, self.root)
-        else:
-            C = self.find_canonical_nodes_right(orthant, self.root)
-        return C
-    
-    # returns a list of all canonical nodes within the range 
-    # root: root of kdtree or subtree in kdtree
-    def find_canonical_nodes_left(self, orthant, root):               
-        # create an empty list to contain all canonical nodes within range
-        C = list()
-        
-        # if root is a leaf, check if root's coordinate intersects range
-        if root.left is None and root.right is None:
-            # append canonical node if coordinate intersects range                
-            if orthant[0] >= root.coords[0] and orthant[1] <= root.coords[1] and orthant[2] >= root.coords[2]:
-                C.append(root)
-            
-        # if root is not a leaf
-        else:             
-            # root.box has no intersection with orthant
-            if orthant[0] < root.box.min_coords[0] and orthant[1] > root.box.max_coords[1] and orthant[2] < root.box.min_coords[2]:
-                return C
-            
-            # root.box fully intersects orthant
-            if orthant[0] >= root.box.min_coords[0] and orthant[1] <= root.box.max_coords[1] and orthant[2] >= root.box.min_coords[2]:
-                C.append(root)
-                
-            # root.box partially intersects orthant
-            else:
-                C_left = self.find_canonical_nodes_left(orthant, root.left)
-                C_right = self.find_canonical_nodes_left(orthant, root.right)
-                
-                if C_left:
-                    C = C + C_left
-                if C_right:
-                    C = C + C_right
-        return C
-    
-    def find_canonical_nodes_right(self, orthant, root):               
-        # create an empty list to contain all canonical nodes within range
-        C = list()
-        
-        # if root is a leaf, check if root's coordinate intersects range
-        if root.left is None and root.right is None:
-            # append canonical node if coordinate intersects range                
-            if orthant[0] >= root.coords[0] and orthant[1] <= root.coords[1] and orthant[2] <= root.coords[2]:
-                C.append(root)
-            
-        # if root is not a leaf
-        else:             
-            # root.box has no intersection with orthant
-            if orthant[0] < root.box.min_coords[0] and orthant[1] > root.box.max_coords[1] and orthant[2] > root.box.min_coords[2]:
-                return C
-            
-            # root.box fully intersects orthant
-            if orthant[0] >= root.box.min_coords[0] and orthant[1] <= root.box.max_coords[1] and orthant[2] <= root.box.min_coords[2]:
-                C.append(root)
-                
-            # root.box partially intersects orthant
-            else:
-                C_left = self.find_canonical_nodes_left(orthant, root.left)
-                C_right = self.find_canonical_nodes_left(orthant, root.right)
-                
-                if C_left:
-                    C = C + C_left
-                if C_right:
-                    C = C + C_right
-        return C    

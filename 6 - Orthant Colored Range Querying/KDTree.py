@@ -260,8 +260,8 @@ class KDTree():
                     return C
                 
                 # root.box fully intersects orthant
-                elif root.box.max_coords[0] <= orthant[0] and root.box.max_coords[1] <= orthant[1] and root.box.min_coords[2] > orthant[1]: 
-                    C.append(root)
+                # elif root.box.max_coords[0] <= orthant[0] and root.box.max_coords[1] <= orthant[1] and root.box.min_coords[2] > orthant[1]: 
+                #     C.append(root)
                     
                 # root.box partially intersects orthant
                 else:
