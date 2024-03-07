@@ -46,10 +46,10 @@ for idx in range(len(dataset)):
 tree = KDTree.KDTree(dataset, color_weight_dict)    
 
 # query num_iterations times and count the colors of query results
-num_iterations = 10000
+num_iterations = 100000
 color_counts = [0] * num_colors
-orthant = [random.random(), random.random()]
-for i in range(num_iterations):        
+for i in range(num_iterations):
+    orthant = [random.random(), random.random()]        
     random_node = tree.query_random_node(orthant)
     if random_node is not None:
         color_counts[random_node.color - 1] += 1

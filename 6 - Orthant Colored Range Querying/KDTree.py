@@ -36,6 +36,10 @@ class KDTree():
         # copy color-weight dictionary and build kdtree
         self.color_weight_dict = color_weight_dict.copy()
         self.root = self.build_kdtree(self.transform_dataset(dataset))
+        
+        # find color counts of canonical nodes
+        self.color_counts = [0] * self.num_colors
+        self.has_color = [False] * self.num_colors
     
     class Node():
         def __init__(self, colored_point):
@@ -121,7 +125,7 @@ class KDTree():
         if len(dataset) == 1:
             v = self.Node(dataset[0].coords + [dataset[0].color])
             v.box = box
-            v.weight = self.color_weight_dict[v.color]
+            v.weight = self.color_weight_dict[v.color - 1]
             v.left = None
             v.right = None
             
@@ -205,6 +209,8 @@ class KDTree():
             # print('no canonical nodes found')
             return None
         
+        self.find_color_counts(C)
+        
         # find canonical node with greatest key, c_max
         c_max = C[0]
         c_max_key = np.random.random() ** (1 / c_max.weight)
@@ -254,8 +260,8 @@ class KDTree():
                     return C
                 
                 # root.box fully intersects orthant
-                elif root.box.max_coords[0] <= orthant[0] and root.box.max_coords[1] <= orthant[1] and root.box.min_coords[2] > orthant[1]: 
-                    C.append(root)
+                # elif root.box.max_coords[0] <= orthant[0] and root.box.max_coords[1] <= orthant[1] and root.box.min_coords[2] > orthant[1]: 
+                #     C.append(root)
                     
                 # root.box partially intersects orthant
                 else:
@@ -267,3 +273,21 @@ class KDTree():
                     if C_right:
                         C = C + C_right
         return C
+    
+    def find_color_counts(self, C):
+        for canonical_node in C:
+            self.find_color_counts_util(canonical_node)
+            for it in range(self.num_colors):
+                if self.has_color[it] is True: 
+                    self.color_counts[it] += 1
+                    self.has_color[it] = False
+                    
+    def find_color_counts_util(self, root):
+        if root is None:
+            return
+        # update color count if node is leaf
+        if root.left is None and root.right is None:
+            self.has_color[root.color - 1] = True
+        
+        self.find_color_counts_util(root.left)
+        self.find_color_counts_util(root.right)
