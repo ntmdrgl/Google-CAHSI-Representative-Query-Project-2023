@@ -11,7 +11,7 @@ class OrthogonalSearchTree():
         self.num_dim = 6
         self.num_colors = len(color_weights)
         
-        self.color_weights = color_weights.copy()
+        self.color_weights = color_weights
         self.last_id = 0
         self.root = self.build_kdtree(dataset)
             

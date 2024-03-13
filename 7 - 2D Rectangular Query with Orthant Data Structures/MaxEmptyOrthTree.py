@@ -10,7 +10,7 @@ class MaxEmptyOrthTree():
         self.num_dim = 3
         self.num_colors = len(color_weights)
         
-        self.color_weights = color_weights.copy()
+        # self.color_weights = color_weights
         self.root = self.build_tree(dataset)
         
     class Node():
@@ -53,7 +53,7 @@ class MaxEmptyOrthTree():
         # set v's weight to the weight of its color
         if len(dataset) == 1:
             v = self.Node(dataset[0])
-            v.weight = self.color_weights[v.color]
+            # v.weight = self.color_weights[v.color]
             v.box = box
             
         # dataset has more than one node
@@ -85,7 +85,7 @@ class MaxEmptyOrthTree():
             v.right = self.build_tree(dataset_right, depth + 1, box_right)
             
             # assign v's weight to the sum of its childrens weights
-            v.weight = v.left.weight + v.right.weight
+            # v.weight = v.left.weight + v.right.weight
                 
         return v
         

@@ -23,7 +23,7 @@ class RectangularSearchTree():
         
         self.light_count = 0
         self.heavy_count = 0
-        
+        self.counts_in_queries = list()
         
     class Node():
         def __init__(self, point):
@@ -49,7 +49,7 @@ class RectangularSearchTree():
             self.max_coords = max_coords.copy()
             
     # tranform a list of 2d points into colored disjoint boxes (represented by _d points)
-    def transform_dataset(self, dataset, isTypeLeft):
+    def transform_dataset(self, dataset, isTypeLeft, isPrintable = None):
         # create a dict of size num_colors, each bucket containing a list of one distinct color
         color_buckets = dict()
         for i in range(len(dataset)):           
@@ -71,22 +71,40 @@ class RectangularSearchTree():
                 color_list[it] = [point[0], point[0], point[1], point[-1]]
             
             # build MEOTree and find a list of 'skyline' points
-            meo_tree = MEOTree.MaxEmptyOrthTree(color_list, self.color_weights)
-            
-            # query to find 'skyline' points
-            t_start = time.time_ns()
-            sky_list = list()
-            for point in color_list:
-                # change query range depending on left/right type
-                if isTypeLeft:
-                    isEmpty = meo_tree.query_is_empty([point[0], -np.inf, point[2]], [np.inf, point[1], np.inf])
-                else:
-                    isEmpty = meo_tree.query_is_empty([point[0], -np.inf, -np.inf], [np.inf, point[1], point[2]])
+            if isPrintable is None:
+                meo_tree = MEOTree.MaxEmptyOrthTree(color_list, self.color_weights)
+            else:
+                t_start = time.time_ns()
+                meo_tree = MEOTree.MaxEmptyOrthTree(color_list, self.color_weights)
+                t_end = time.time_ns()
+                print(f"  MEO build time: {(t_end - t_start) / (10 ** 9)} seconds")
                 
-                if isEmpty:
-                    sky_list.append(point)
-            t_end = time.time_ns()
-            # print(f"Query MEO time: {(t_end - t_start) / (10 ** 9)} seconds")
+            # query to find 'skyline' points
+            if isPrintable is None:
+                sky_list = list()
+                for point in color_list:
+                    # change query range depending on left/right type
+                    if isTypeLeft:
+                        isEmpty = meo_tree.query_is_empty([point[0], -np.inf, point[2]], [np.inf, point[1], np.inf])
+                    else:
+                        isEmpty = meo_tree.query_is_empty([point[0], -np.inf, -np.inf], [np.inf, point[1], point[2]])
+                    
+                    if isEmpty:
+                        sky_list.append(point)
+            else:
+                t_start = time.time_ns()
+                sky_list = list()
+                for point in color_list:
+                    # change query range depending on left/right type
+                    if isTypeLeft:
+                        isEmpty = meo_tree.query_is_empty([point[0], -np.inf, point[2]], [np.inf, point[1], np.inf])
+                    else:
+                        isEmpty = meo_tree.query_is_empty([point[0], -np.inf, -np.inf], [np.inf, point[1], point[2]])
+                    
+                    if isEmpty:
+                        sky_list.append(point)
+                t_end = time.time_ns()
+                print(f"  MEO query time: {(t_end - t_start) / (10 ** 9)} seconds")
             
             # transform 3d skyline points into 6d disjoint cubes             
             self.sort_dataset(sky_list, 0, len(sky_list) - 1, 0)
@@ -130,7 +148,7 @@ class RectangularSearchTree():
                         # transformed_dataset.append([-np.inf, p[0], p[1], np.inf, p[2], prev[2], False, p[-1]])
                         # under has updated z min boundary
                         # transformed_dataset.append([-np.inf, p[0], p[1], prev[1], prev[2], np.inf, False, p[-1]])
-            
+                
         return transformed_dataset
         
         
@@ -164,14 +182,27 @@ class RectangularSearchTree():
             v.weight = v.left.weight + v.right.weight
             
             # create the left and right auxilary structures
+            # t_start = time.time_ns()
             transform_left = self.transform_dataset(dataset_left, True)
             transform_right = self.transform_dataset(dataset_right, False)
+            # t_end = time.time_ns()
+            # if depth == 0:
+                # print(f"  Transform time: {(t_end - t_start) / (10 ** 9)} seconds")
+            
+            # t_start = time.time_ns()
             v.aux_left = OSTree.OrthogonalSearchTree(transform_left, self.color_weights)
             v.aux_right = OSTree.OrthogonalSearchTree(transform_right, self.color_weights)
+            # t_end = time.time_ns()
+            # if depth == 0:
+                # print(f"  AUX build time: {(t_end - t_start) / (10 ** 9)} seconds")
+            
             
             # v.count = v.left.count + v.right.count + v.aux_left.root.count + v.aux_right.root.count + 1
+            # t_start = time.time_ns()
             v.matrix = self.build_matrix(v)
-                
+            # t_end = time.time_ns()
+            # if depth == 0:
+                # print(f"  Matrix build time: {(t_end - t_start) / (10 ** 9)} seconds")                
         return v
         
     def build_matrix(self, node):
@@ -196,9 +227,8 @@ class RectangularSearchTree():
             
         for i, c_left in enumerate(heavy_left):
             for j, c_right in enumerate(heavy_right):
-                self.found_intersection = False
-                self.find_light_intersection(c_left, c_right)
-                
+                self.intersection_weight = 0
+                # self.find_light_intersection(c_left, c_right)
                 matrix[i][j] = self.intersection_weight   
         
         return matrix
@@ -212,7 +242,7 @@ class RectangularSearchTree():
         if root.left is None and root.right is None:
             return C
         
-        if root.weight > self.x_const:
+        if root.count > self.x_const:
             C.append(root)
         
         c_left = self.find_heavy_nodes(root.left)
@@ -254,12 +284,13 @@ class RectangularSearchTree():
         #   present in the left_aux and right_aux structures
         for i, c_left in enumerate(nodes_left):
             for j, c_right in enumerate(nodes_right):
-                self.found_intersection = False
                 self.find_intersection(c_left, c_right, split_node)
                 
                 nodes_right[j].search_weight -= self.intersection_weight
                 if nodes_right[j].search_weight < 0:
                     nodes_right[j].search_weight = 0
+        
+        self.update_canonical_counts(nodes_left, nodes_right)
         
         if nodes_left:
             # all light canonical nodes ready to query from
@@ -310,13 +341,13 @@ class RectangularSearchTree():
     
     # global vars used to stop tree recursive search when intersection found
     #  in find_light_intersection and find_light_intersection_helper
-    found_intersection = None
-    intersection_weight = None    
+    found_color_intersection = None
+    intersection_weight = 0    
     
-    def find_intersection(self, c_left, c_right, node):        
-        # self.find_light_intersection(c_left, c_right)
+    def find_intersection(self, c_left, c_right, node):              
+        self.intersection_weight = 0
         
-        if c_left.weight > self.x_const and c_right.weight > self.x_const:
+        if c_left.count > self.x_const and c_right.count > self.x_const:
             self.find_heavy_intersection(c_left, c_right, node)
             self.heavy_count += 1
             # print(c_left.weight, '>', self.x_const)
@@ -331,8 +362,6 @@ class RectangularSearchTree():
         right_idx = node.right_to_idx[c_right.node_id]
         
         self.intersection_weight = node.matrix[left_idx][right_idx]
-        self.found_intersection = True
-        
         # print('Heavy intersect:', self.intersection_weight)
     
     def find_light_intersection(self, c_left, c_right):
@@ -341,45 +370,29 @@ class RectangularSearchTree():
         
         # when at leaf, remove leaf's color from subtree at c_right
         if c_left.left is None and c_left.right is None:
-            self.found_intersection = False
+            self.found_color_intersection = False
             self.find_light_intersection_helper(c_left.color, c_right, c_right)
         
         self.find_light_intersection(c_left.left, c_right)
         self.find_light_intersection(c_left.right, c_right)
     
     def find_light_intersection_helper(self, color, c_right, root):
-        if root is None or self.found_intersection is True:
+        if root is None or self.found_color_intersection is True:
             return
         
         # when at leaf, subtract c_right's weight by weight of searched color
-        if root.left is None and root.right is None:
-            self.intersection_weight = self.color_weights[color]
-            self.found_intersection = True
-            return
+        if root.left is None and root.right is None and (root.color == color):
+            self.intersection_weight += self.color_weights[color]
+            self.found_color_intersection = True
             
         self.find_light_intersection_helper(color, c_right, root.left)
         self.find_light_intersection_helper(color, c_right, root.right)
-        
     
-    def report_aux_colors(self, x_range, y_range):
-        split_node = self.find_split_node(self.root, y_range)
-        
-        # check if in y_range when split_node is leaf
-        if split_node.left is None and split_node.right is None:
-            if split_node.coords[1] >= y_range[0] and split_node.coords[1] < y_range[1]:
-                return ([split_node.color], [])
-            else:
-                return None
-
-        min_left = [-np.inf, x_range[0], -np.inf, x_range[1], -np.inf, y_range[0]]
-        max_left = [x_range[0], np.inf, x_range[1], np.inf, y_range[0], np.inf]
-        nodes_left = split_node.aux_left.report_colors(min_left, max_left)
-        
-        min_right = [-np.inf, x_range[0], -np.inf, x_range[1], -np.inf, y_range[1]]
-        max_right = [x_range[0], np.inf, x_range[1], np.inf, y_range[1], np.inf]
-        nodes_right = split_node.aux_right.report_colors(min_right, max_right)  
-        
-        return (nodes_left, nodes_right)        
+    def update_canonical_counts(self, nodes_left, nodes_right):
+        for node in nodes_left:
+            self.counts_in_queries.append(node.count)
+        for node in nodes_right:
+            self.counts_in_queries.append(node.count)
     
     def find_split_node(self, root, y_range):
         v = root
