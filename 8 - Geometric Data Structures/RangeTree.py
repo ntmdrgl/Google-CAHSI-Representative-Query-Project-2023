@@ -9,6 +9,7 @@ Objective:
  - With fractional cascading on the lowest level of Range Tree
 """
 import numpy as np
+import time
 
 class RangeTree():
     def __init__(self, dataset, color_weights):
@@ -86,7 +87,7 @@ class RangeTree():
                 v = v.left
             else:
                 v = v.right
-        
+                
         return v
         
     def report_canonical_nodes(self, root, min_point, max_point, axis=0, canonical_nodes=[]):

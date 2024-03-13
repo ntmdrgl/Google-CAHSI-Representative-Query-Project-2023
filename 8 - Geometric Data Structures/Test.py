@@ -12,17 +12,26 @@ from matplotlib import pyplot as plt
 import math
 import time
 import random
+import os
+import sys
 
-input_size = 1000
-num_dim = 2
+path = os.path.realpath(__file__) 
+dir = os.path.dirname(path) 
+dir = dir.replace('8 - Geometric Data Structures', 'Datasets') 
+print(dir)
+
+# sys.exit(0)
+
+input_size = 100000
+num_dim = 1
 dataset = np.random.default_rng().random((input_size, num_dim)).tolist()
 num_colors = 20
-num_queries = 100
+num_queries = 1000
 
 # round each coodinate of point
 for i in range(input_size):
     for j in range(len(dataset[i])):
-        dataset[i][j] = round(dataset[i][j], 2)
+        dataset[i][j] = dataset[i][j] # round(dataset[i][j], 2)
      # add color to end of point
     dataset[i].append(i % num_colors + 1)
     

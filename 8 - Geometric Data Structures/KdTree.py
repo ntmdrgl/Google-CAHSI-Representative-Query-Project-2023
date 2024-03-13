@@ -8,6 +8,7 @@ Objective:
    independently range sampling on a set of colored (categorical) points
 """
 import numpy as np
+import time
 
 class KdTree():
     def __init__(self, dataset, color_weights):
@@ -105,8 +106,9 @@ class KdTree():
                 v = v.left
             else:
                 v = v.right
-        
+                
         return v
+        
                 
     def report_canonical_nodes(self, root, min_point, max_point, canonical_nodes=[]):
         # search leaf node
@@ -115,15 +117,17 @@ class KdTree():
                 canonical_nodes.append(root)
         # search internal node
         else:
-            # no intersect
-            if any(root.min_point[i] > max_point[i] or root.max_point[i] < min_point[i] for i in range(self.num_dim)):
-                return canonical_nodes
-            # fully intersects
-            elif all(min_point[i] <= root.min_point[i] and root.max_point[i] <= max_point[i] for i in range(self.num_dim)):
+            # left fully intersects
+            if all(min_point[i] <= root.left.min_point[i] and root.left.max_point[i] <= max_point[i] for i in range(self.num_dim)):
                 canonical_nodes.append(root)
-            # partial intersect
-            else:
+            # left partially intersects
+            elif not any(root.left.min_point[i] > max_point[i] or root.left.max_point[i] < min_point[i] for i in range(self.num_dim)):
                 self.report_canonical_nodes(root.left, min_point, max_point, canonical_nodes)
+            
+            # repeat on right side
+            if all(min_point[i] <= root.right.min_point[i] and root.right.max_point[i] <= max_point[i] for i in range(self.num_dim)):
+                canonical_nodes.append(root)
+            elif not any(root.right.min_point[i] > max_point[i] or root.right.max_point[i] < min_point[i] for i in range(self.num_dim)):
                 self.report_canonical_nodes(root.right, min_point, max_point, canonical_nodes)
             
         return canonical_nodes
