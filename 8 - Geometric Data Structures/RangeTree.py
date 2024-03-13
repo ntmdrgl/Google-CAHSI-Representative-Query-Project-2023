@@ -15,71 +15,51 @@ class RangeTree():
         self.num_dim = len(dataset[0]) - 1     # number of dimensions in points
         self.num_colors = len(color_weights)   # number of colors in points
         self.color_weights = color_weights     # dictionary of colors mapped to weights
-        self.root = self.build_kdtree(dataset) # root of kdtree
+        self.root = self.build_range_tree(dataset) # root of kdtree
         
     class Node():
         def __init__(self, colored_point):
             self.point = colored_point.copy()
             self.color = self.point.pop()
         
-        left = None      # left child
-        right = None     # right child
-        min_point = None # min point of bounding box 
-        max_point = None # max point of bounding box
-        weight = None    # weight of subtree rooted at self  
-        count = None     # number of leaves in subtree rooted at self
+        left = None    # left child
+        right = None   # right child
+        T_assoc = None # next level range tree
+        weight = None  # weight of subtree rooted at self  
+        count = None   # number of leaves in subtree rooted at self
         
-    def build_kdtree(self, dataset, depth=0, min_point = None, max_point = None):
+    def build_range_tree(self, dataset, axis=0):
         if not dataset:
             return None
         
-        # at root, set range of entire dataset
-        if min_point is None and max_point is None:
-            min_point = list(range(self.num_dim))
-            max_point = list(range(self.num_dim))
-            # find min and max for every dimension
-            for axis in range(self.num_dim):
-                min_point[axis] = np.inf
-                max_point[axis] = -np.inf
-                # search through every point in dataset
-                for i in range(len(dataset)):
-                    if dataset[i][axis] <= min_point[axis]:
-                        min_point[axis] = dataset[i][axis]
-                        
-                    if dataset[i][axis] >= max_point[axis]:
-                        max_point[axis] = dataset[i][axis]
+        if axis > (self.num_dim - 1):
+            return None
+        
+        # create associated tree on higher axis
+        T_assoc = self.build_range_tree(dataset, axis + 1)
         
         # create leaf
         if len(dataset) == 1: 
             v = self.Node(dataset[0])
-            v.min_point = min_point
-            v.max_point = max_point
+            v.T_assoc = T_assoc
             v.weight = self.color_weights[v.color]
             v.count = 1
         # create internal node
         else:
-            axis = depth % self.num_dim
-            
             # find median point
             dataset.sort(key=lambda p: p[axis])
             median = len(dataset) // 2
             if len(dataset) % 2 == 0:
                 median -= 1
-                
-            # split dataset by median point and create internal node on median
-            v = self.Node(dataset[median])
-            v.min_point = min_point
-            v.max_point = max_point
             
+            # split dataset by median point and create internal node on median
             dataset_left = dataset[:median + 1]
             dataset_right = dataset[median + 1:]
-            min_left = v.min_point
-            max_left = v.point
-            min_right = v.point
-            max_right = v.max_point
             
-            v.left = self.build_kdtree(dataset_left, depth + 1, min_left, max_left)
-            v.right = self.build_kdtree(dataset_right, depth + 1, min_right, max_right)
+            v = self.Node(dataset[median])
+            v.left = self.build_range_tree(dataset_left, axis)
+            v.right = self.build_range_tree(dataset_right, axis)
+            v.T_assoc = T_assoc
             v.weight = v.left.weight + v.right.weight
             v.count = v.left.count + v.right.count
             
@@ -108,24 +88,57 @@ class RangeTree():
                 v = v.right
         
         return v
-                
         
-    def report_canonical_nodes(self, root, min_point, max_point, canonical_nodes=[]):
+    def report_canonical_nodes(self, root, min_point, max_point, axis=0, canonical_nodes=[]):
+        sp = self.report_split_node(self.root, min_point, max_point, axis)
+        
         # search leaf node
-        if root.left is None and root.right is None:
-            if all(min_point[i] <= root.point[i] <= max_point[i] for i in range(self.num_dim)):
-                canonical_nodes.append(root)
+        if sp.left is None and sp.right is None:
+            if min_point[axis] <= root.point[axis] <= max_point[axis]:
+                canonical_nodes.append(sp)
         # search internal node
         else:
-            # no intersect
-            if any(root.min_point[i] > max_point[i] or root.max_point[i] < min_point[i] for i in range(self.num_dim)):
-                return canonical_nodes
-            # fully intersects
-            elif all(min_point[i] <= root.min_point[i] and root.max_point[i] <= max_point[i] for i in range(self.num_dim)):
-                canonical_nodes.append(root)
-            # partial intersect
-            else:
-                self.report_canonical_nodes(root.left, min_point, max_point, canonical_nodes)
-                self.report_canonical_nodes(root.right, min_point, max_point, canonical_nodes)
-            
+            # follow path to min_point
+            v = sp.left
+            while v.left is not None and v.right is not None:
+                if v.point[axis] >= min_point[axis]:
+                    # recursively find canonical nodes on higher axis if not at highest axis
+                    # otherwise add v to canonical nodes
+                    if axis < self.num_dim - 1:
+                        self.report_canonical_nodes(v.right, min_point, max_point, axis + 1, canonical_nodes)
+                    else:
+                        canonical_nodes.append(v.right)
+                    v = v.left
+                else:
+                    v = v.right
+            # check leaf at end of path
+            if min_point[axis] <= v.point[axis] <= max_point[axis]:
+                canonical_nodes.append(v)
+                
+            # repeat process on path to max_point
+            v = sp.right
+            while v.left is not None and v.right is not None:
+                if v.point[axis] <= max_point[axis]:
+                    if axis < self.num_dim - 1:
+                        self.report_canonical_nodes(v.left, min_point, max_point, axis + 1, canonical_nodes)    
+                    else:
+                        canonical_nodes.append(v.left)
+                    v = v.right
+                else:
+                    v = v.left
+            if min_point[axis] <= v.point[axis] <= max_point[axis]:
+                canonical_nodes.append(v)
+                
         return canonical_nodes
+
+    def report_split_node(self, root, min_point, max_point, axis): 
+        v = root
+        # walk down v until leaf or inside axis range
+        while v.left is not None and v.right is not None:
+            if v.point[axis] < min_point[axis]:
+                v = v.right
+            elif v.point[axis] > max_point[axis]:
+                v = v.left
+            else:
+                break
+        return v

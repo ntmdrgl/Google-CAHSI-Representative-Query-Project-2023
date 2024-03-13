@@ -108,7 +108,6 @@ class KdTree():
         
         return v
                 
-        
     def report_canonical_nodes(self, root, min_point, max_point, canonical_nodes=[]):
         # search leaf node
         if root.left is None and root.right is None:
