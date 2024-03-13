@@ -13,9 +13,9 @@ import time
 
 class RangeTree():
     def __init__(self, dataset, color_weights):
-        self.num_dim = len(dataset[0]) - 1     # number of dimensions in points
-        self.num_colors = len(color_weights)   # number of colors in points
-        self.color_weights = color_weights     # dictionary of colors mapped to weights
+        self.num_dim = len(dataset[0]) - 1         # number of dimensions in points
+        self.num_colors = len(color_weights)       # number of colors in points
+        self.color_weights = color_weights         # dictionary of colors mapped to weights
         self.root = self.build_range_tree(dataset) # root of kdtree
         
     class Node():

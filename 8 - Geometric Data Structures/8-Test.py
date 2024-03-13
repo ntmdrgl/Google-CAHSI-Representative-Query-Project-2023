@@ -14,26 +14,72 @@ import time
 import random
 import os
 import sys
+import json
 
+# change path to open datasets directory
 path = os.path.realpath(__file__) 
 dir = os.path.dirname(path) 
 dir = dir.replace('8 - Geometric Data Structures', 'Datasets') 
-print(dir)
+os.chdir(dir) 
 
-# sys.exit(0)
+# extract dictionaries from json file
+print("Extracting json file...")
+data = []
+with open('yelp_academic_dataset_business.json', 'r', encoding="utf8") as file:
+    for line in file:
+        data.append(json.loads(line))
 
-input_size = 100000
-num_dim = 1
-dataset = np.random.default_rng().random((input_size, num_dim)).tolist()
-num_colors = 20
+# take arguments from dictionary and covert to list
+dataset = list()
+city_to_count = dict()
+city_to_color = dict()
+color_to_city = dict()
+city_num = 1
+for d in data:
+    x = d.get("latitude")
+    y = d.get("longitude")
+    city = d.get("city")
+    
+    if city not in city_to_color.keys():
+        city_to_count[city] = 1
+        city_to_color[city] = city_num
+        color_to_city[city_num] = city
+        city_num += 1
+    else:
+        city_to_count[city] += 1
+        
+    dataset.append([x, y, city_to_color[city]])
+    
+# normalize points
+print("Normalizing data...\n")
+x_min = 27.555127
+x_max = 53.6791969
+y_min = -120.095137
+y_max = -73.2004570502
+for point in dataset:
+    point[0] = (point[0] - x_min) / (x_max - x_min)
+    point[1] = (point[1] - y_min) / (y_max - y_min)
+
+# yelp dataset
+input_size = len(dataset)
+num_dim = 2
+num_colors = len(color_to_city)
 num_queries = 1000
 
-# round each coodinate of point
-for i in range(input_size):
-    for j in range(len(dataset[i])):
-        dataset[i][j] = dataset[i][j] # round(dataset[i][j], 2)
-     # add color to end of point
-    dataset[i].append(i % num_colors + 1)
+# # Simulated dataset
+# input_size = 100000
+# num_dim = 2
+# dataset = np.random.default_rng().random((input_size, num_dim)).tolist()
+# num_colors = 20
+# num_queries = 1000
+
+# # round each coodinate of point
+# for i in range(input_size):
+#     for j in range(len(dataset[i])):
+#         dataset[i][j] = dataset[i][j] # round(dataset[i][j], 2)
+     
+#     # add color to end of point
+#     dataset[i].append(i % num_colors + 1)
     
 # generate dictionary of weights for colors
 color_weight_dict = dict()

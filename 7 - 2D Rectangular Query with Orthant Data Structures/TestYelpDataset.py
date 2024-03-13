@@ -4,7 +4,7 @@ Created on February 7, 2024
 Authors: Nathaniel Madrigal, Alexander Madrigal
 
 """
-import RectangularSearchTree as RSTree
+import RectangularSearchTree_Old as RSTree
 from matplotlib import pyplot as plt
 import random
 import math
@@ -12,18 +12,25 @@ import time
 import json
 
 import os
+import sys
 import psutil
 from memory_profiler import profile
 
-def process_memory():
-    process = psutil.Process(os.getpid())
-    mem_info = process.memory_info()
-    return mem_info.rss
+# def process_memory():
+#     process = psutil.Process(os.getpid())
+#     mem_info = process.memory_info()
+#     return mem_info.rss
 
-@profile
-def my_build(dataset, color_weight_dict, x_const):
-    tree = RSTree.RectangularSearchTree(dataset, color_weight_dict, x_const)
-    return tree
+# @profile
+# def my_build(dataset, color_weight_dict, x_const):
+#     tree = RSTree.RectangularSearchTree(dataset, color_weight_dict, x_const)
+#     return tree
+
+# change path to open datasets directory
+path = os.path.realpath(__file__) 
+dir = os.path.dirname(path) 
+dir = dir.replace('7 - 2D Rectangular Query with Orthant Data Structures', 'Datasets') 
+os.chdir(dir) 
 
 # extract dictionaries from json file
 print("Extracting json file...")
@@ -67,9 +74,15 @@ for point in dataset:
 input_size = len(dataset)
 num_dim = 2
 num_colors = len(color_to_city)
+num_queries = 100
+
+sub_dataset_size = 5
+sub_dataset = list()
+for i in range(sub_dataset_size):
+    sub_dataset.append(dataset.pop(random.randint(0, len(dataset)-1)))    
+print(sub_dataset)
 
 # generate a set of queries to be used by data structure
-num_queries = 100
 query_ranges = list() # list of lists of type [x_range, y_range]
 for it in range(num_queries):
     x_range = [round(random.random(),3), round(random.random(),3)]  
@@ -91,6 +104,7 @@ for i in range(1, num_colors + 1):
     color_weight_list.append(weight_func)   
 
 print("Input size:", input_size)
+print("Subset size:", sub_dataset_size)
 print("Dimensions:", num_dim)
 print("Colors:", num_colors)
 print("Queries per tree:", num_queries, "\n")
@@ -99,15 +113,13 @@ print("Queries per tree:", num_queries, "\n")
 print("Building tree: \n") 
 x_const = math.sqrt(input_size)
 
-sub_dataset = dataset[:10000]
-
 t_start = time.time_ns()
-mem_before = process_memory()
-tree = my_build(sub_dataset, color_weight_dict, x_const)
-mem_after = process_memory()
+# mem_before = process_memory()
+tree = RSTree.RectangularSearchTree(sub_dataset, color_weight_dict, x_const)
+# mem_after = process_memory()
 t_end = time.time_ns()
 print(f"Build time: {(t_end - t_start) / (10 ** 9)} seconds")
-print(f"Space consumed: {mem_after - mem_before}\n")
+# print(f"Space consumed: {mem_after - mem_before}\n")
 
 # query tree
 print("Querying:")
