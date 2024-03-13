@@ -52,7 +52,7 @@ class OrthogonalSearchTree():
             min_coords = list(range(self.num_dim))
             max_coords = list(range(self.num_dim))
             
-            # find max and min for every dimension
+            # find min and max for every dimension
             for dim in range(self.num_dim):
                 min_coords[dim] = np.inf
                 max_coords[dim] = -np.inf
