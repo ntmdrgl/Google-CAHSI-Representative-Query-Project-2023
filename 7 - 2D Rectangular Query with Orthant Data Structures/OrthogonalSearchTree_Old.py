@@ -108,7 +108,7 @@ class OrthogonalSearchTree():
             
             # assign v's weight to the sum of its childrens weights
             v.weight = v.left.weight + v.right.weight
-            v.count = v.left.count + v.right.count + 1
+            v.count = v.left.count + v.right.count # + 1
             v.node_id = self.get_id()              
             
         return v

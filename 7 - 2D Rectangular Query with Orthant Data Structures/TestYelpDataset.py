@@ -16,7 +16,7 @@ import json
 import os
 import sys
 import psutil
-from memory_profiler import profile
+# from memory_profiler import profile
 
 # change path to open datasets directory
 path = os.path.realpath(__file__) 
@@ -31,13 +31,15 @@ with open('yelp_academic_dataset_business.json', 'r', encoding="utf8") as file:
     for line in file:
         data.append(json.loads(line))
 
+num_colors = 1400
+
 # take arguments from dictionary and covert to list
 dataset = list()
 city_to_count = dict()
 city_to_color = dict()
 color_to_city = dict()
 city_num = 1
-for d in data:
+for it, d in enumerate(data):
     x = d.get("latitude")
     y = d.get("longitude")
     city = d.get("city")
@@ -50,8 +52,8 @@ for d in data:
     else:
         city_to_count[city] += 1
         
-    dataset.append([x, y, city_to_color[city]])
-        
+    # dataset.append([x, y, city_to_color[city]])
+    dataset.append([x, y, it % num_colors + 1])   
     
 # normalize points
 print("Normalizing data...\n")
@@ -65,9 +67,9 @@ for point in dataset:
     
 input_size = len(dataset)
 num_dim = 2
-num_colors = len(color_to_city)
-num_queries = 100
-sub_dataset_size = 1000
+# num_colors = len(color_to_city)
+num_queries = 1000
+sub_dataset_size = 3000
 
 # create sub dataset
 sub_dataset = list()
@@ -139,12 +141,15 @@ for i in range(0, 11):
     num_valid_samples = 0
     color_samples = list()
     canonical_node_counts = list()
+    sum_heavy = 0
+    sum_total = 0
     t_sum = 0
     for it, query_range in enumerate(query_ranges):
         min_point = query_range[0]
         max_point = query_range[1]
         x_range = [min_point[0], max_point[0]]
         y_range = [min_point[1], max_point[1]]
+        
         
         t_start = time.time_ns()
         # rand_sample = tree.query_random_sample(min_point, max_point)
@@ -163,6 +168,8 @@ for i in range(0, 11):
                 print("INCORRECT, outside of query range", rand_sample.orig_coords, x_range, y_range)
             color_samples.append(rand_sample.color)
             num_valid_samples += 1
+            sum_heavy += tree.heavy_count
+            sum_total += tree.heavy_count + tree.light_count
     
     if allCorrect:
         print("All samples inside of Query Ranges!")
@@ -175,9 +182,9 @@ for i in range(0, 11):
     else:
         print("Average canonical node size: Undefined")
     print(f"X Const: {tree.x_const}")
-    print(f"Heavy nodes: {tree.heavy_count}")
-    print(f"Light+Heavy nodes: {tree.light_count + tree.heavy_count}\n")
-    heavy_nodes.append(tree.heavy_count / (tree.light_count + tree.heavy_count))
+    print(f"Heavy nodes: {sum_heavy}")
+    print(f"Light+Heavy nodes: {sum_total}\n")
+    heavy_nodes.append(sum_heavy / sum_total)
     avg_query_times.append((t_avg) / (10 ** 6))
     
 # plt.bar(range(1, num_colors + 1), color_weight_list, color='blue')
@@ -205,15 +212,15 @@ plt.ylabel('Frequency')
 plt.show()
 
 xs = list()
-for i in range(1, len(heavy_nodes) + 1):
+for i in range(0, len(heavy_nodes)):
     xs.append(i * x_const_mult)
-plt.bar(xs, heavy_nodes, color='orange')
+plt.bar(xs, heavy_nodes, color='green')
 plt.title("Heavy nodes vs. X Const")
 plt.xlabel('X Const')
 plt.ylabel('Heavy Node (%)')
 plt.show()
 
-plt.bar(range(1, len(avg_query_times) + 1), avg_query_times, color='orange')
+plt.bar(range(0, len(avg_query_times)), avg_query_times, color='turquoise')
 plt.title("Query time vs. X Const")
 plt.xlabel('X Const')
 plt.ylabel('Average Query Time (ms)')

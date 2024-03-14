@@ -23,7 +23,6 @@ class RSTree():
         
         self.light_count = 0
         self.heavy_count = 0
-        self.counts_in_queries = list()
         self.avg_count = None
         
     class Node():
@@ -289,6 +288,9 @@ class RSTree():
         
         if num_counts != 0:
             self.avg_count = sum_counts / num_counts
+        
+        self.light_count = 0
+        self.heavy_count = 0
         
         # find and remove intersection between every pairing of canonical nodes
         #   present in the left_aux and right_aux structures
