@@ -5,13 +5,13 @@ Authors: Nathaniel Madrigal, Alexander Madrigal
 
 """
 
-import OrthogonalSearchTree as OSTree
-import MaxEmptyOrthTree as MEOTree
+import OrthogonalSearchTree_Old as OSTree
+import MaxEmptyOrthTree_Old as MEOTree
 import numpy as np
 import time
 import math
 
-class RectangularSearchTree():
+class RSTree():
     def __init__(self, dataset, color_weights, x_const):
         self.num_dim = 2
         self.num_colors = len(color_weights)
@@ -24,6 +24,7 @@ class RectangularSearchTree():
         self.light_count = 0
         self.heavy_count = 0
         self.counts_in_queries = list()
+        self.avg_count = None
         
     class Node():
         def __init__(self, point):
@@ -228,7 +229,7 @@ class RectangularSearchTree():
         for i, c_left in enumerate(heavy_left):
             for j, c_right in enumerate(heavy_right):
                 self.intersection_weight = 0
-                # self.find_light_intersection(c_left, c_right)
+                self.find_light_intersection(c_left, c_right)
                 matrix[i][j] = self.intersection_weight   
         
         return matrix
@@ -255,13 +256,13 @@ class RectangularSearchTree():
             
         return C
     
-    def report_colors(self, x_range, y_range):
+    def query_random_sample(self, x_range, y_range):
         split_node = self.find_split_node(self.root, y_range)
         
         # check if in y_range when split_node is leaf
         if split_node.left is None and split_node.right is None:
             if split_node.coords[1] >= y_range[0] and split_node.coords[1] < y_range[1]:
-                return split_node.color
+                return split_node
             else:
                 return None
 
@@ -273,12 +274,21 @@ class RectangularSearchTree():
         max_right = [x_range[0], np.inf, x_range[1], np.inf, y_range[1], np.inf]
         nodes_right = split_node.aux_right.report_colors(min_right, max_right)      
         
+        num_counts = 0
+        sum_counts = 0
         
         for c_left in nodes_left:
             c_left.search_weight = c_left.weight
+            num_counts += 1
+            sum_counts += c_left.count
         
         for c_right in nodes_right:
             c_right.search_weight = c_right.weight
+            num_counts += 1
+            sum_counts += c_right.count
+        
+        if num_counts != 0:
+            self.avg_count = sum_counts / num_counts
         
         # find and remove intersection between every pairing of canonical nodes
         #   present in the left_aux and right_aux structures
@@ -289,8 +299,6 @@ class RectangularSearchTree():
                 nodes_right[j].search_weight -= self.intersection_weight
                 if nodes_right[j].search_weight < 0:
                     nodes_right[j].search_weight = 0
-        
-        self.update_canonical_counts(nodes_left, nodes_right)
         
         if nodes_left:
             # all light canonical nodes ready to query from
@@ -337,7 +345,7 @@ class RectangularSearchTree():
             else:
                 v = v.right
         
-        return v.color
+        return v
     
     # global vars used to stop tree recursive search when intersection found
     #  in find_light_intersection and find_light_intersection_helper
@@ -349,6 +357,7 @@ class RectangularSearchTree():
         
         if c_left.count > self.x_const and c_right.count > self.x_const:
             self.find_heavy_intersection(c_left, c_right, node)
+            # self.find_light_intersection(c_left, c_right)
             self.heavy_count += 1
             # print(c_left.weight, '>', self.x_const)
             
@@ -387,12 +396,6 @@ class RectangularSearchTree():
             
         self.find_light_intersection_helper(color, c_right, root.left)
         self.find_light_intersection_helper(color, c_right, root.right)
-    
-    def update_canonical_counts(self, nodes_left, nodes_right):
-        for node in nodes_left:
-            self.counts_in_queries.append(node.count)
-        for node in nodes_right:
-            self.counts_in_queries.append(node.count)
     
     def find_split_node(self, root, y_range):
         v = root

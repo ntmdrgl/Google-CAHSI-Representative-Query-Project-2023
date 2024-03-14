@@ -33,7 +33,6 @@ class OrthogonalSearchTree():
         right = None
         box = None
         weight = None
-        search_weight = None
         count = None
         node_id = None
     

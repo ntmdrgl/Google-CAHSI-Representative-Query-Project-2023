@@ -67,7 +67,7 @@ class RangeTree():
         return v
 
     def query_random_sample(self, min_point, max_point):
-        canonical_nodes = self.report_canonical_nodes(self.root, min_point, max_point)
+        canonical_nodes = self.report_canonical_nodes(self.root, min_point, max_point, 0, [])
         if not canonical_nodes:
             return None
         
@@ -95,14 +95,14 @@ class RangeTree():
         
         # search leaf node
         if sp.left is None and sp.right is None:
-            if min_point[axis] <= root.point[axis] <= max_point[axis]:
+            if min_point[axis] < root.point[axis] < max_point[axis]:
                 canonical_nodes.append(sp)
         # search internal node
         else:
             # follow path to min_point
             v = sp.left
             while v.left is not None and v.right is not None:
-                if v.point[axis] >= min_point[axis]:
+                if v.point[axis] > min_point[axis]:
                     # recursively find canonical nodes on higher axis if not at highest axis
                     # otherwise add v to canonical nodes
                     if axis < self.num_dim - 1:
@@ -113,13 +113,13 @@ class RangeTree():
                 else:
                     v = v.right
             # check leaf at end of path
-            if min_point[axis] <= v.point[axis] <= max_point[axis]:
+            if min_point[axis] < v.point[axis] < max_point[axis]:
                 canonical_nodes.append(v)
                 
             # repeat process on path to max_point
             v = sp.right
             while v.left is not None and v.right is not None:
-                if v.point[axis] <= max_point[axis]:
+                if v.point[axis] < max_point[axis]:
                     if axis < self.num_dim - 1:
                         self.report_canonical_nodes(v.left, min_point, max_point, axis + 1, canonical_nodes)    
                     else:
@@ -127,7 +127,7 @@ class RangeTree():
                     v = v.right
                 else:
                     v = v.left
-            if min_point[axis] <= v.point[axis] <= max_point[axis]:
+            if min_point[axis] < v.point[axis] < max_point[axis]:
                 canonical_nodes.append(v)
                 
         return canonical_nodes
