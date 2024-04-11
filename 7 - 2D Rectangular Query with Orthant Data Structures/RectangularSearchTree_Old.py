@@ -6,205 +6,156 @@ Authors: Nathaniel Madrigal, Alexander Madrigal
 """
 
 import OrthogonalSearchTree_Old as OSTree
-import MaxEmptyOrthTree_Old as MEOTree
+import KdTree
 import numpy as np
 import time
-import math
 
 class RSTree():
     def __init__(self, dataset, color_weights, x_const):
-        self.num_dim = 2
-        self.num_colors = len(color_weights)
-        self.size = len(dataset)
-        self.color_weights = color_weights.copy()
+        self.num_dim = 2                            # number of dimensions in points
+        self.num_colors = len(color_weights)        # number of colors in points
+        self.color_weights = color_weights.copy()   # dictionary of colors mapped to weights
         self.x_const = x_const
         
-        self.root = self.build_tree(dataset)
+        self.root = self.build_tree(dataset)        # root of tree
         
         self.light_count = 0
         self.heavy_count = 0
-        self.avg_count = None
+        self.num_counts = 0
+        self.sum_counts = 0
+        self.avg_count = 0
+        
         
     class Node():
         def __init__(self, point):
-            self.coords = point.copy()
-            self.color = self.coords.pop()
+            self.point = point.copy()
+            self.color = self.point.pop()
             
-        left = None
-        right = None
-        weight = None
-        search_weight = None
-        count = None
-        
-        aux_left = None
-        aux_right = None
+        left = None          # left child
+        right = None         # right child
+        weight = None        # weight of subtree rooted at self  
+        search_weight = None # temporary weight of node after intersection removal
+        count = None         # number of leaves in subtree rooted at self
+        aux_left = None      # 3-sided query tree on type-left points 
+        aux_right = None     # 3-sided query tree on type-right points
         
         matrix = None
         left_to_idx = None
         right_to_idx = None
+    
+    # tree sorted on y-coordinates (axis=1)
+    def build_tree(self, dataset, depth=0):
+        axis = 1
+        if not dataset:
+            return None
         
-    class BoundingBox():
-        def __init__(self, min_coords, max_coords):
-            self.min_coords = min_coords.copy()
-            self.max_coords = max_coords.copy()
-            
-    # tranform a list of 2d points into colored disjoint boxes (represented by _d points)
-    def transform_dataset(self, dataset, isTypeLeft, isPrintable = None):
-        # create a dict of size num_colors, each bucket containing a list of one distinct color
-        color_buckets = dict()
-        for i in range(len(dataset)):           
-            color = dataset[i][-1]
-            # if color is in color dictionary, append point
-            if color in color_buckets.keys():
-                color_buckets[color].append(dataset[i])
-            # else, create a list with point
-            else:
-                color_buckets[color] = [dataset[i]]
-        
-        # for each color, search for maximally empty orthants in every point
-        transformed_dataset = list()
-        for color in color_buckets:
-            color_list = color_buckets[color].copy()
-            
-            # transform points from (x, y) to (x1, x2, y) by duplicating x 
-            for it, point in enumerate(color_list):
-                color_list[it] = [point[0], point[0], point[1], point[-1]]
-            
-            # build MEOTree and find a list of 'skyline' points
-            if isPrintable is None:
-                meo_tree = MEOTree.MaxEmptyOrthTree(color_list, self.color_weights)
-            else:
-                t_start = time.time_ns()
-                meo_tree = MEOTree.MaxEmptyOrthTree(color_list, self.color_weights)
-                t_end = time.time_ns()
-                print(f"  MEO build time: {(t_end - t_start) / (10 ** 9)} seconds")
-                
-            # query to find 'skyline' points
-            if isPrintable is None:
-                sky_list = list()
-                for point in color_list:
-                    # change query range depending on left/right type
-                    if isTypeLeft:
-                        isEmpty = meo_tree.query_is_empty([point[0], -np.inf, point[2]], [np.inf, point[1], np.inf])
-                    else:
-                        isEmpty = meo_tree.query_is_empty([point[0], -np.inf, -np.inf], [np.inf, point[1], point[2]])
-                    
-                    if isEmpty:
-                        sky_list.append(point)
-            else:
-                t_start = time.time_ns()
-                sky_list = list()
-                for point in color_list:
-                    # change query range depending on left/right type
-                    if isTypeLeft:
-                        isEmpty = meo_tree.query_is_empty([point[0], -np.inf, point[2]], [np.inf, point[1], np.inf])
-                    else:
-                        isEmpty = meo_tree.query_is_empty([point[0], -np.inf, -np.inf], [np.inf, point[1], point[2]])
-                    
-                    if isEmpty:
-                        sky_list.append(point)
-                t_end = time.time_ns()
-                print(f"  MEO query time: {(t_end - t_start) / (10 ** 9)} seconds")
-            
-            # transform 3d skyline points into 6d disjoint cubes             
-            self.sort_dataset(sky_list, 0, len(sky_list) - 1, 0)
-            sky_list.reverse()
-            
-            for it, p in enumerate(sky_list):
-                prev = sky_list[it - 1]
-                
-                if it == 0:
-                    if isTypeLeft:
-                        transformed_dataset.append([-np.inf, p[0], p[1], np.inf, -np.inf, p[2], True, p[-1]])
-                    else:
-                        transformed_dataset.append([-np.inf, p[0], p[1], np.inf, p[2], np.inf, False, p[-1]])
-                    continue
-            
-                if isTypeLeft:
-                    # create y max bound if under previous point (from z)
-                    if p[2] < sky_list[it - 1][2]:
-                        # make y max the prev y
-                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], -np.inf, p[2], True, p[-1]])
-                    # make two boxes, 1. one with overhang 2. other under prev point (from z) 
-                    else:
-                        # overhang is incomplete
-                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], -np.inf, p[2], True, p[-1]])
-                        
-                        # overhang has z min boundary
-                        # transformed_dataset.append([-np.inf, p[0], p[1], np.inf, prev[2], p[2], True, p[-1]])
-                        # # under has updated z max boundary
-                        # transformed_dataset.append([-np.inf, p[0], p[1], prev[1], -np.inf, prev[2], True, p[-1]])
-                else:
-                    # create y max bound if under previous point (from z)
-                    if p[2] > sky_list[it - 1][2]:
-                        # make y max the prev y
-                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], p[2], np.inf, False, p[-1]])
-                    # make two boxes, 1. one with overhang 2. other under prev point (from z) 
-                    else:
-                        # overhang is incomplete
-                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], p[2], np.inf, False, p[-1]])
-                        
-                        # overhang has z max boundary
-                        # transformed_dataset.append([-np.inf, p[0], p[1], np.inf, p[2], prev[2], False, p[-1]])
-                        # under has updated z min boundary
-                        # transformed_dataset.append([-np.inf, p[0], p[1], prev[1], prev[2], np.inf, False, p[-1]])
-                
-        return transformed_dataset
-        
-        
-    def build_tree(self, dataset, depth = 0):
-        # base case, dataset is at leaf node v
-        if len(dataset) == 1:
+        # create leaf
+        if len(dataset) == 1: 
             v = self.Node(dataset[0])
             v.weight = self.color_weights[v.color]
             v.count = 1
-            
-        # dataset is at internal node v
+        # create internal node
         else:
-            # split dataset on median node sorted on y dimension
-            self.sort_dataset(dataset, 0, len(dataset) - 1, 1)  
-                      
+            # find median point
+            dataset.sort(key=lambda p: p[axis])
+            median = len(dataset) // 2
             if len(dataset) % 2 == 0:
-                mid = (len(dataset) // 2) - 1
-            else:
-                mid = len(dataset) // 2
-                            
-            # set v as the median internal node
-            v = self.Node(dataset[mid])
+                median -= 1
             
-            # assign left and right pointers to trees built on split subtrees
-            dataset_left = dataset[:mid + 1]
-            dataset_right = dataset[mid + 1:]
+            # split dataset by median point and create internal node on median
+            dataset_left = dataset[:median + 1]
+            dataset_right = dataset[median + 1:]
+            
+            v = self.Node(dataset[median])
             v.left = self.build_tree(dataset_left, depth + 1)
             v.right = self.build_tree(dataset_right, depth + 1)
-                   
-            # assign v's weight to the sum of its childrens weights
             v.weight = v.left.weight + v.right.weight
+            v.count = v.left.count + v.right.count
             
-            # create the left and right auxilary structures
-            # t_start = time.time_ns()
+            # transform left and right child's dataset
+            # and create 3-sided auxillary trees
             transform_left = self.transform_dataset(dataset_left, True)
             transform_right = self.transform_dataset(dataset_right, False)
-            # t_end = time.time_ns()
-            # if depth == 0:
-                # print(f"  Transform time: {(t_end - t_start) / (10 ** 9)} seconds")
-            
-            # t_start = time.time_ns()
+            # v.aux_left = KdTree.KdTree(transform_left, self.color_weights)
+            # v.aux_right = KdTree.KdTree(transform_right, self.color_weights)
             v.aux_left = OSTree.OrthogonalSearchTree(transform_left, self.color_weights)
             v.aux_right = OSTree.OrthogonalSearchTree(transform_right, self.color_weights)
-            # t_end = time.time_ns()
-            # if depth == 0:
-                # print(f"  AUX build time: {(t_end - t_start) / (10 ** 9)} seconds")
             
-            
-            # v.count = v.left.count + v.right.count + v.aux_left.root.count + v.aux_right.root.count + 1
-            # t_start = time.time_ns()
             v.matrix = self.build_matrix(v)
-            # t_end = time.time_ns()
-            # if depth == 0:
-                # print(f"  Matrix build time: {(t_end - t_start) / (10 ** 9)} seconds")                
+            
         return v
         
+    def transform_dataset(self, dataset, isTypeLeft):
+        # generate lists separated by colors stored in a dictionary
+        color_buckets = dict()
+        for i in range(len(dataset)):           
+            color = dataset[i][-1]
+            if not color in color_buckets.keys():
+                color_buckets[color] = [dataset[i]]
+            else:
+                color_buckets[color].append(dataset[i])
+            
+        # create disjoint cubes for each color and append to transformed dataset 
+        transformed_dataset = list()
+        
+        for color in color_buckets:
+            # transform points from (x, y) to (x, y, z) where y is duplicate x
+            color_list = color_buckets[color]
+            for it, point in enumerate(color_list):
+                color_list[it] = [point[0], point[0], point[1], point[-1]]
+            
+            # find maximally empty points using 3-sided emptiness queries
+            emptiness_tree = KdTree.KdTree(color_list, self.color_weights)
+            max_empty_points = list()
+            for point in color_list:
+                min_point = None
+                max_point = None                
+                if isTypeLeft:
+                    min_point = [point[0], -np.inf,  point[2]]
+                    max_point = [np.inf,   point[1], np.inf  ]
+                else:
+                    min_point = [point[0], -np.inf,  -np.inf ]
+                    max_point = [np.inf,   point[1], point[2]]
+                
+                if emptiness_tree.report_emptiness(min_point, max_point):
+                    max_empty_points.append(point)
+                 
+            if len(max_empty_points) == 0:
+                print("before",len(color_list), color_list)
+            
+            # transform 3d maximally empty points into 6d disjoint cubes             
+            max_empty_points.sort(key=lambda p: p[0])
+            max_empty_points.reverse()
+            
+            for it, p in enumerate(max_empty_points):
+                if it == 0:
+                    if isTypeLeft:
+                        transformed_dataset.append([-np.inf, p[0], p[1], np.inf, -np.inf, p[2], p[-1], p[0], p[2]])
+                    else:
+                        transformed_dataset.append([-np.inf, p[0], p[1], np.inf, p[2], np.inf, p[-1], p[0], p[2]])
+                    continue
+                
+                prev = max_empty_points[it - 1]
+                if isTypeLeft:
+                    # create y max bound if under previous point (from z)
+                    if p[2] < prev[2]:
+                        # make y max the prev y
+                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], -np.inf, p[2], p[-1], p[0], p[2]])
+                    else:
+                        # overhang case, find all prev points with ...
+                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], -np.inf, p[2], p[-1], p[0], p[2]])
+
+                else:
+                    # create y max bound if under previous point (from z)
+                    if p[2] > prev[2]:
+                        # make y max the prev y
+                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], p[2], np.inf, p[-1], p[0], p[2]])
+                    else:
+                        # overhang case, find all prev points with ...
+                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], p[2], np.inf, p[-1], p[0], p[2]])
+                
+        return transformed_dataset
+    
     def build_matrix(self, node):
         heavy_left = list()
         heavy_right = list()
@@ -227,165 +178,136 @@ class RSTree():
             
         for i, c_left in enumerate(heavy_left):
             for j, c_right in enumerate(heavy_right):
-                self.intersection_weight = 0
-                self.find_light_intersection(c_left, c_right)
-                matrix[i][j] = self.intersection_weight   
+                # matrix[i][j] = self.find_light_intersection(c_left, c_right)
+                matrix[i][j] = 0
         
         return matrix
         
-    def find_heavy_nodes(self, root):
-        C = list()
-        
+    def find_heavy_nodes(self, root, C=[]):
         if root is None:
-            return C
-        
+            return 
         if root.left is None and root.right is None:
-            return C
+            return
         
         if root.count > self.x_const:
             C.append(root)
         
-        c_left = self.find_heavy_nodes(root.left)
-        c_right = self.find_heavy_nodes(root.right)
+        self.find_heavy_nodes(root.left, C)
+        self.find_heavy_nodes(root.right, C)
         
-        if c_left:
-            C += c_left
-        if c_right:
-            C += c_right
-            
         return C
     
-    def query_random_sample(self, x_range, y_range):
-        split_node = self.find_split_node(self.root, y_range)
+    def query_random_sample(self, min_point, max_point):
+        split_node = self.report_split_node(self.root, min_point, max_point)
         
         # check if in y_range when split_node is leaf
         if split_node.left is None and split_node.right is None:
-            if split_node.coords[1] >= y_range[0] and split_node.coords[1] < y_range[1]:
+            if min_point[1] <= split_node.point[1] <= max_point[1]:
                 return split_node
             else:
                 return None
-
-        min_left = [-np.inf, x_range[0], -np.inf, x_range[1], -np.inf, y_range[0]]
-        max_left = [x_range[0], np.inf, x_range[1], np.inf, y_range[0], np.inf]
-        nodes_left = split_node.aux_left.report_colors(min_left, max_left)
         
-        min_right = [-np.inf, x_range[0], -np.inf, x_range[1], -np.inf, y_range[1]]
-        max_right = [x_range[0], np.inf, x_range[1], np.inf, y_range[1], np.inf]
-        nodes_right = split_node.aux_right.report_colors(min_right, max_right)      
+        # find canonical nodes from auxillary trees
+        min_left = [-np.inf, min_point[0], -np.inf, max_point[0], -np.inf, min_point[1]]
+        max_left = [min_point[0], np.inf, max_point[0], np.inf, min_point[1], np.inf]
+        canonical_nodes_left = split_node.aux_left.report_colors(min_left, max_left)
+        
+        min_right = [-np.inf, min_point[0], -np.inf, max_point[0], -np.inf, max_point[1]]
+        max_right = [min_point[0], np.inf, max_point[0], np.inf, max_point[1], np.inf]
+        canonical_nodes_right = split_node.aux_right.report_colors(min_right, max_right)  
         
         num_counts = 0
         sum_counts = 0
-        
-        for c_left in nodes_left:
-            c_left.search_weight = c_left.weight
+        for node in canonical_nodes_left:
+            node.search_weight = node.weight
             num_counts += 1
-            sum_counts += c_left.count
-        
-        for c_right in nodes_right:
-            c_right.search_weight = c_right.weight
+            sum_counts += node.count
+        for node in canonical_nodes_right:
+            node.search_weight = node.weight
             num_counts += 1
-            sum_counts += c_right.count
+            sum_counts += node.count
         
-        if num_counts != 0:
-            self.avg_count = sum_counts / num_counts
+        self.num_counts += num_counts
+        self.sum_counts += sum_counts
+        if self.num_counts != 0:
+            self.avg_count = self.sum_counts / self.num_counts
+        
+        if not canonical_nodes_left and not canonical_nodes_right:
+            return None
         
         self.light_count = 0
         self.heavy_count = 0
         
         # find and remove intersection between every pairing of canonical nodes
-        #   present in the left_aux and right_aux structures
-        for i, c_left in enumerate(nodes_left):
-            for j, c_right in enumerate(nodes_right):
-                self.find_intersection(c_left, c_right, split_node)
-                
-                nodes_right[j].search_weight -= self.intersection_weight
-                if nodes_right[j].search_weight < 0:
-                    nodes_right[j].search_weight = 0
+        for node_left in canonical_nodes_left:
+            for node_right in canonical_nodes_right:
+                node_right.search_weight -= self.report_intersection(node_left, node_right, split_node)
+                if node_right.search_weight < 0:
+                    node_right.search_weight = 0
         
-        if nodes_left:
-            # all light canonical nodes ready to query from
-            c_max = nodes_left[0]
-            if c_max.search_weight != 0:
-                max_key = np.random.random() ** (1 / c_max.search_weight)
-            else:
-                max_key = 0
-        elif nodes_right:
-            c_max = nodes_right[0]
-            if c_max.search_weight != 0:
-                max_key = np.random.random() ** (1 / c_max.search_weight)
-            else:
-                max_key = 0
-        # no light nodes found
+        canonical_nodes = list()
+        if canonical_nodes_left:
+            canonical_nodes += canonical_nodes_left         
+        if canonical_nodes_right:
+            canonical_nodes += canonical_nodes_right   
+        
+        # randomly select a canonical node
+        max_node = canonical_nodes[0]
+        if max_node.weight != 0:
+            max_key = np.random.random() ** (1 / max_node.weight)
         else:
-            return None
-        
-        # search for canonical node with greatest key between 
-        #   the lists nodes_left and nodes_right
-        for it, node in enumerate(nodes_left):
-            if node.search_weight != 0:
-                curr_key = np.random.random() ** (1 / node.search_weight)
+            max_key = 0
+        for node in canonical_nodes:
+            if node.weight != 0:
+                key = np.random.random() ** (1 / node.weight)
             else:
-                curr_key = 0
-            if curr_key > max_key:
-                c_max = node
-                max_key = curr_key
-        
-        for it, node in enumerate(nodes_right):
-            if node.search_weight != 0:
-                curr_key = np.random.random() ** (1 / node.search_weight)
-            else:
-                curr_key = 0
-            if curr_key > max_key:
-                c_max = node
-                max_key = curr_key
+                key = 0
+            if key > max_key:
+                max_node = node
+                max_key = key
                 
-        # traverse down tree and report color from leaf
-        v = c_max
+        # randomly walk down canonical node and return leaf node
+        v = max_node
         while v.left is not None and v.right is not None:
             if np.random.random() ** (1 / v.left.weight) > np.random.random() ** (1 / v.right.weight):
                 v = v.left
             else:
                 v = v.right
-        
         return v
-    
-    # global vars used to stop tree recursive search when intersection found
-    #  in find_light_intersection and find_light_intersection_helper
-    found_color_intersection = None
-    intersection_weight = 0    
-    
-    def find_intersection(self, c_left, c_right, node):              
-        self.intersection_weight = 0
         
-        if c_left.count > self.x_const and c_right.count > self.x_const:
-            self.find_heavy_intersection(c_left, c_right, node)
-            # self.find_light_intersection(c_left, c_right)
+    def report_intersection(self, node_left, node_right, split_node):
+        if node_left.count > self.x_const and node_right.count > self.x_const:
+            weight = self.find_heavy_intersection(node_left, node_right, split_node)
             self.heavy_count += 1
-            # print(c_left.weight, '>', self.x_const)
-            
         else:
-            # print(c_left.weight, '!>', self.x_const)
-            self.find_light_intersection(c_left, c_right)
+            weight = self.find_light_intersection(node_left, node_right)
             self.light_count += 1
+        return weight
     
-    def find_heavy_intersection(self, c_left, c_right, node):
-        left_idx = node.left_to_idx[c_left.node_id]
-        right_idx = node.right_to_idx[c_right.node_id]
-        
-        self.intersection_weight = node.matrix[left_idx][right_idx]
-        # print('Heavy intersect:', self.intersection_weight)
+    def find_heavy_intersection(self, c_left, c_right, split_node):
+        return 0
+        print(c_left.node_id, c_right.node_id)
+        print(split_node.left_to_idx.keys())
+        left_idx = split_node.left_to_idx[c_left.node_id]
+        right_idx = split_node.right_to_idx[c_right.node_id]
+        return split_node.matrix[left_idx][right_idx]
     
+    found_color_intersection = None
+    intersection_weight = None
     def find_light_intersection(self, c_left, c_right):
         if c_left is None:
-            return
+            return 0
         
         # when at leaf, remove leaf's color from subtree at c_right
         if c_left.left is None and c_left.right is None:
             self.found_color_intersection = False
+            self.intersection_weight = 0
             self.find_light_intersection_helper(c_left.color, c_right, c_right)
         
         self.find_light_intersection(c_left.left, c_right)
         self.find_light_intersection(c_left.right, c_right)
+        
+        return self.intersection_weight
     
     def find_light_intersection_helper(self, color, c_right, root):
         if root is None or self.found_color_intersection is True:
@@ -399,38 +321,16 @@ class RSTree():
         self.find_light_intersection_helper(color, c_right, root.left)
         self.find_light_intersection_helper(color, c_right, root.right)
     
-    def find_split_node(self, root, y_range):
+    # split node on y-coordinates (axis=1)
+    def report_split_node(self, root, min_point, max_point):
+        axis = 1
         v = root
-        # loop until node v is at a leaf or is inside y_range
-        while (v.left is not None and v.right is not None and (v.coords[1] < y_range[0] or v.coords[1] > y_range[1])):
-            if v.coords[1] >= y_range[1]:
+        # walk down v until leaf or inside axis range
+        while v.left is not None and v.right is not None:
+            if v.point[axis] < min_point[axis]:
+                v = v.right
+            elif v.point[axis] > max_point[axis]:
                 v = v.left
             else:
-                v = v.right
+                break
         return v
-    
-    # quick sort implementation to sort dataset on d dimension in ascending order
-    def sort_dataset(self, dataset, low, high, dim):
-        if low < high:
-            pi = self.partition(dataset, low, high, dim)
-            self.sort_dataset(dataset, low, pi, dim)
-            self.sort_dataset(dataset, pi + 1, high, dim)
-    
-    # helper function of sort_dataset
-    def partition(self, dataset, low, high, dim):
-        pivot = dataset[(low + high) // 2][dim]
-        i = low - 1
-        j = high + 1
-        while True:
-            while True:
-                i = i + 1
-                if dataset[i][dim] >= pivot:
-                    break
-            while True:
-                j = j - 1
-                if dataset[j][dim] <= pivot:
-                    break
-            if i < j:
-                (dataset[i], dataset[j]) = (dataset[j], dataset[i])
-            else:
-                return j

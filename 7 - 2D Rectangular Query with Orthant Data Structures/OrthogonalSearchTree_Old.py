@@ -8,62 +8,63 @@ import numpy as np
 
 class OrthogonalSearchTree():
     def __init__(self, dataset, color_weights):
-        self.num_dim = 6
-        self.num_colors = len(color_weights)
+        if len(dataset[0]) == 4:
+            self.num_dim = 3
+        elif len(dataset[0]) == 9:
+            self.num_dim = 6                   # number of dimensions in points
+        self.num_colors = len(color_weights)   # number of colors in points
+        self.color_weights = color_weights     # dictionary of colors mapped to weights
+        self.node_id = 0
         
-        self.color_weights = color_weights
-        self.last_id = 0
-        self.root = self.build_kdtree(dataset)
-            
+        self.root = self.build_kdtree(dataset) # root of kdtree
+        
+    def get_node_id(self):
+        self.node_id += 1
+        return self.node_id
+        
     class Node():
-        def __init__(self, point):
-            self.coords = point.copy()
-            self.color = self.coords.pop()
+        def __init__(self, colored_point):
+            if len(colored_point) == 4:
+                self.point = colored_point.copy()
+                self.color = self.point.pop()
             
-            self.isTypeLeft = self.coords.pop()
-            if self.isTypeLeft:
-                self.orig_coords = [self.coords[1], self.coords[5]]
-            else:
-                self.orig_coords = [self.coords[1], self.coords[4]]
+            if len(colored_point) == 9:
+                self.point = colored_point[0:7]
+                self.original_point = colored_point[7:]
+                self.color = self.point.pop()
         
-        isTypeLeft = None
-        orig_coords = None
-        
-        left = None
-        right = None
-        box = None
-        weight = None
-        count = None
-        node_id = None
+        left = None      # left child
+        right = None     # right child
+        min_point = None # min point of bounding box 
+        max_point = None # max point of bounding box
+        weight = None    # weight of subtree rooted at self  
+        count = None     # number of leaves in subtree rooted at self
+        node_id = 0
     
-    def get_id(self):
-        return self.last_id
-        self.last_id += 1
-        
     class BoundingBox():
-        def __init__(self, min_coords, max_coords):
-            self.min_coords = min_coords.copy()
-            self.max_coords = max_coords.copy()
+        def __init__(self, min_point, max_point):
+            self.min_point = min_point.copy()
+            self.max_point = max_point.copy()
     
     def build_kdtree(self, dataset, depth = 0, box = None):
         # at root, set bounding box to range of dataset
         if box is None:                    
-            min_coords = list(range(self.num_dim))
-            max_coords = list(range(self.num_dim))
+            min_point = list(range(self.num_dim))
+            max_point = list(range(self.num_dim))
             
             # find min and max for every dimension
             for dim in range(self.num_dim):
-                min_coords[dim] = np.inf
-                max_coords[dim] = -np.inf
+                min_point[dim] = np.inf
+                max_point[dim] = -np.inf
                 # search through every point in dataset
                 for i in range(len(dataset)):
-                    if dataset[i][dim] <= min_coords[dim]:
-                        min_coords[dim] = dataset[i][dim]
+                    if dataset[i][dim] <= min_point[dim]:
+                        min_point[dim] = dataset[i][dim]
                         
-                    if dataset[i][dim] >= max_coords[dim]:
-                        max_coords[dim] = dataset[i][dim]
+                    if dataset[i][dim] >= max_point[dim]:
+                        max_point[dim] = dataset[i][dim]
                         
-            box = self.BoundingBox(min_coords, max_coords)
+            box = self.BoundingBox(min_point, max_point)
         
         if len(dataset) <= 0:
             return None
@@ -76,7 +77,7 @@ class OrthogonalSearchTree():
             v.weight = self.color_weights[v.color]
             v.count = 1
             v.box = box
-            v.node_id = self.get_id()
+            v.node_id = self.get_node_id()
             
         # dataset has more than one node
         else:         
@@ -97,30 +98,30 @@ class OrthogonalSearchTree():
             v = self.Node(dataset[mid])
             v.box = box
 
-            box_left = self.BoundingBox(v.box.min_coords, v.box.max_coords)
-            box_left.max_coords[curr_dim] = v.coords[curr_dim]
+            box_left = self.BoundingBox(v.box.min_point, v.box.max_point)
+            box_left.max_point[curr_dim] = v.point[curr_dim]
             
-            box_right = self.BoundingBox(v.box.min_coords, v.box.max_coords)
-            box_right.min_coords[curr_dim] = v.coords[curr_dim]
+            box_right = self.BoundingBox(v.box.min_point, v.box.max_point)
+            box_right.min_point[curr_dim] = v.point[curr_dim]
             
             v.left = self.build_kdtree(dataset_left, depth + 1, box_left)
             v.right = self.build_kdtree(dataset_right, depth + 1, box_right)
             
             # assign v's weight to the sum of its childrens weights
             v.weight = v.left.weight + v.right.weight
-            v.count = v.left.count + v.right.count # + 1
-            v.node_id = self.get_id()              
+            v.count = v.left.count + v.right.count # + 1          
+            v.node_id = self.get_node_id()
             
         return v
         
     # returns a random sample within the range 
-    def report_colors(self, min_coords, max_coords):
-        C = self.find_canonical_nodes(min_coords, max_coords, self.root)
+    def report_colors(self, min_point, max_point):
+        C = self.find_canonical_nodes(min_point, max_point, self.root)
         return C
     
     # returns a list of all canonical nodes within the range 
     # root: root of kdtree or subtree in kdtree
-    def find_canonical_nodes(self, min_coords, max_coords, root):          
+    def find_canonical_nodes(self, min_point, max_point, root):          
         # create an empty list to contain all canonical nodes within range
         C = list()
         
@@ -129,7 +130,7 @@ class OrthogonalSearchTree():
             coordinate_intersects = True
             
             for dim in range(self.num_dim):
-                if root.coords[dim] < min_coords[dim] or root.coords[dim] > max_coords[dim]:
+                if root.point[dim] < min_point[dim] or root.point[dim] > max_point[dim]:
                     coordinate_intersects = False
                     break
                 
@@ -147,11 +148,11 @@ class OrthogonalSearchTree():
             
             for dim in range(self.num_dim):
                 # if root's box does not intersect range, return
-                if root.box.min_coords[dim] > max_coords[dim] or root.box.max_coords[dim] < min_coords[dim]:
+                if root.box.min_point[dim] > max_point[dim] or root.box.max_point[dim] < min_point[dim]:
                     return C
                 
                 # if root's box is not contained in range, break loop
-                if root.box.min_coords[dim] < min_coords[dim] or root.box.max_coords[dim] > max_coords[dim]:
+                if root.box.min_point[dim] < min_point[dim] or root.box.max_point[dim] > max_point[dim]:
                     box_fully_intersects = False
                     break
             
@@ -162,8 +163,8 @@ class OrthogonalSearchTree():
                 
             # if root's box partially intersects range, search root's left and right
             else:
-                C_left = self.find_canonical_nodes(min_coords, max_coords, root.left)
-                C_right = self.find_canonical_nodes(min_coords, max_coords, root.right)
+                C_left = self.find_canonical_nodes(min_point, max_point, root.left)
+                C_right = self.find_canonical_nodes(min_point, max_point, root.right)
                 
                 if C_left:
                     C = C + C_left

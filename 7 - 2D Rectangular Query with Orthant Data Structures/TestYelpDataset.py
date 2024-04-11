@@ -4,8 +4,8 @@ Created on February 7, 2024
 Authors: Nathaniel Madrigal, Alexander Madrigal
 
 """
-# import RectangularSearchTree as RSTree
 import RectangularSearchTree_Old as RSTree
+# import RectangularSearchTree as RSTree
 from matplotlib import pyplot as plt
 import numpy as np
 import random
@@ -68,8 +68,8 @@ for point in dataset:
 input_size = len(dataset)
 num_dim = 2
 # num_colors = len(color_to_city)
-num_queries = 1000
-sub_dataset_size = 3000
+num_queries = 10000
+sub_dataset_size = 500
 
 # create sub dataset
 sub_dataset = list()
@@ -128,7 +128,7 @@ print(f"Build time: {(t_end - t_start) / (10 ** 9)} seconds\n")
 
 heavy_nodes = list()
 avg_query_times = list()
-for i in range(0, 11):
+for i in range(0, 3):
     if i == 0:
         heavy_nodes.append(0)
         avg_query_times.append(0)
@@ -144,6 +144,7 @@ for i in range(0, 11):
     sum_heavy = 0
     sum_total = 0
     t_sum = 0
+    allCorrect = True
     for it, query_range in enumerate(query_ranges):
         min_point = query_range[0]
         max_point = query_range[1]
@@ -152,8 +153,9 @@ for i in range(0, 11):
         
         
         t_start = time.time_ns()
-        # rand_sample = tree.query_random_sample(min_point, max_point)
-        rand_sample = tree.query_random_sample(x_range, y_range)
+        # rand_sample = tree.query_random_sample(x_range, y_range)
+        rand_sample = tree.query_random_sample(min_point, max_point)
+        
         t_end = time.time_ns()
         t_sum += t_end - t_start
         
@@ -161,11 +163,11 @@ for i in range(0, 11):
             canonical_node_counts.append(tree.avg_count)
         
         if rand_sample is not None:
-            allCorrect = True
-            if not (x_range[0] < rand_sample.orig_coords[0] < x_range[1] and y_range[0] < rand_sample.orig_coords[1] < y_range[1]):
-            # if not (min_point[0] < rand_sample.original_point[0] < max_point[0] and min_point[1] < rand_sample.original_point[1] < max_point[1]):
-                allCorrect = True
-                print("INCORRECT, outside of query range", rand_sample.orig_coords, x_range, y_range)
+            # if not (x_range[0] < rand_sample.orig_coords[0] < x_range[1] and y_range[0] < rand_sample.orig_coords[1] < y_range[1]):
+            if not (min_point[0] < rand_sample.original_point[0] < max_point[0] and min_point[1] < rand_sample.original_point[1] < max_point[1]):
+                allCorrect = False
+                # print("INCORRECT", rand_sample.orig_coords, x_range, y_range)
+                print("INCORRECT", rand_sample.original_point, x_range, y_range)
             color_samples.append(rand_sample.color)
             num_valid_samples += 1
             sum_heavy += tree.heavy_count
@@ -184,7 +186,10 @@ for i in range(0, 11):
     print(f"X Const: {tree.x_const}")
     print(f"Heavy nodes: {sum_heavy}")
     print(f"Light+Heavy nodes: {sum_total}\n")
-    heavy_nodes.append(sum_heavy / sum_total)
+    if not sum_total == 0:
+        heavy_nodes.append(sum_heavy / sum_total)
+    else:
+        heavy_nodes.append(0)
     avg_query_times.append((t_avg) / (10 ** 6))
     
 # plt.bar(range(1, num_colors + 1), color_weight_list, color='blue')

@@ -24,7 +24,7 @@ class KdTree():
     def __init__(self, dataset, color_weights):
         if len(dataset[0]) == 4:
             self.num_dim = 3
-        if len(dataset[0]) == 9:
+        elif len(dataset[0]) == 9:
             self.num_dim = 6                   # number of dimensions in points
         self.num_colors = len(color_weights)   # number of colors in points
         self.color_weights = color_weights     # dictionary of colors mapped to weights
@@ -106,47 +106,53 @@ class KdTree():
     
     def report_emptiness(self, min_point, max_point):
         canonical_nodes = self.report_canonical_nodes(self.root, min_point, max_point, [])
-        
+        # canonical_nodes = self.find_canonical_nodes(self.root, min_point, max_point, [])
 
-        if len(canonical_nodes) == 0:
+        if len(canonical_nodes) == 1 and canonical_nodes[0].left is None and canonical_nodes[0].right is None:
             return True
         else:
+            # print(len(canonical_nodes), min_point, max_point)
             return False
         
     def report_colors(self, min_point, max_point):
-        # C = self.report_canonical_nodes(self.root, min_point, max_point, [])
-        C = self.find_canonical_nodes(self.root, min_point, max_point, [])
+        C = self.report_canonical_nodes(self.root, min_point, max_point, [])
+        # C = self.find_canonical_nodes(self.root, min_point, max_point, [])
         return C
 
     def report_canonical_nodes(self, root, min_point, max_point, canonical_nodes=[]):
-        x = root.min_point
-        y = root.max_point
         # search leaf node
         if root.left is None and root.right is None:
-            if all(min_point[i] < root.point[i] < max_point[i] for i in range(self.num_dim)):
+            # if all(min_point[i] < root.point[i] < max_point[i] for i in range(self.num_dim)):
+            if not any(root.point[i] > max_point[i] or root.point[i] < min_point[i] for i in range(self.num_dim)):
                 canonical_nodes.append(root)
         # search internal node
         else:
-            x = root.left.min_point
-            y = root.left.max_point
-            # left fully intersects
-            if all(min_point[i] < root.left.min_point[i] and root.left.max_point[i] < max_point[i] for i in range(self.num_dim)):
+            # fully intersects
+            if all(min_point[i] < root.min_point[i] and root.max_point[i] < max_point[i] for i in range(self.num_dim)):
                 canonical_nodes.append(root)
-            # left partially intersects
-            elif not any(root.left.min_point[i] > max_point[i] or root.left.max_point[i] < min_point[i] for i in range(self.num_dim)):
+            # partially intersects
+            elif not any(root.min_point[i] > max_point[i] or root.max_point[i] < min_point[i] for i in range(self.num_dim)):
                 self.report_canonical_nodes(root.left, min_point, max_point, canonical_nodes)
-            
-            x = root.right.min_point
-            y = root.right.max_point
-            # repeat on right side
-            if all(min_point[i] < root.right.min_point[i] and root.right.max_point[i] < max_point[i] for i in range(self.num_dim)):
-                canonical_nodes.append(root)
-            elif not any(root.right.min_point[i] > max_point[i] or root.right.max_point[i] < min_point[i] for i in range(self.num_dim)):
                 self.report_canonical_nodes(root.right, min_point, max_point, canonical_nodes)
+            
+            # # left fully intersects
+            # if all(min_point[i] < root.left.min_point[i] and root.left.max_point[i] < max_point[i] for i in range(self.num_dim)):
+            #     canonical_nodes.append(root)
+            # # left partially intersects
+            # elif not any(root.left.min_point[i] > max_point[i] or root.left.max_point[i] < min_point[i] for i in range(self.num_dim)):
+            #     self.report_canonical_nodes(root.left, min_point, max_point, canonical_nodes)
+            
+            # # repeat on right side
+            # if all(min_point[i] < root.right.min_point[i] and root.right.max_point[i] < max_point[i] for i in range(self.num_dim)):
+            #     canonical_nodes.append(root)
+            # elif not any(root.right.min_point[i] > max_point[i] or root.right.max_point[i] < min_point[i] for i in range(self.num_dim)):
+            #     self.report_canonical_nodes(root.right, min_point, max_point, canonical_nodes)
             
         return canonical_nodes
     
-    def find_canonical_nodes(self, root, min_point, max_point, canonical_nodes=[]):          
+    # returns a list of all canonical nodes within the range 
+    # root: root of kdtree or subtree in kdtree
+    def find_canonical_nodes(self, root, min_point, max_point, C=[]):          
         # if root is a leaf, check if root's coordinate intersects range
         if root.left is None and root.right is None:
             coordinate_intersects = True
@@ -158,7 +164,8 @@ class KdTree():
                 
             # append canonical node if coordinate intersects range
             if coordinate_intersects:
-                canonical_nodes.append(root)
+                C.append(root)
+                # print("leaf intersects")
             else:
                 pass
             
@@ -170,20 +177,21 @@ class KdTree():
             for dim in range(self.num_dim):
                 # if root's box does not intersect range, return
                 if root.min_point[dim] > max_point[dim] or root.max_point[dim] < min_point[dim]:
-                    return canonical_nodes
+                    return 
                 
-                # if root's box is not contained in range, break lsoop
+                # if root's box is not contained in range, break loop
                 if root.min_point[dim] < min_point[dim] or root.max_point[dim] > max_point[dim]:
                     box_fully_intersects = False
                     break
             
             # if root's box fully intersects range, append root to list
             if box_fully_intersects:
-                canonical_nodes.append(root)
+                # print("fully intersects")
+                C.append(root)
                 
             # if root's box partially intersects range, search root's left and right
             else:
-                self.find_canonical_nodes(root.left, min_point, max_point, canonical_nodes)
-                self.find_canonical_nodes(root.right, min_point, max_point, canonical_nodes)
-
-        return canonical_nodes
+                self.find_canonical_nodes(root.left, min_point, max_point, C)
+                self.find_canonical_nodes(root.right, min_point, max_point, C)
+        
+        return C
