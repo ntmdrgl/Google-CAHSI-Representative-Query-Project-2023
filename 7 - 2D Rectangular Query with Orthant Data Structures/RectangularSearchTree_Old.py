@@ -85,6 +85,7 @@ class RSTree():
             
         return v
         
+    # inputs dataset and returns transformed dataset of decomposed colored boxes
     def transform_dataset(self, dataset, isTypeLeft):
         # generate lists separated by colors stored in a dictionary
         color_buckets = dict()
@@ -97,64 +98,77 @@ class RSTree():
             
         # create disjoint cubes for each color and append to transformed dataset 
         transformed_dataset = list()
-        
         for color in color_buckets:
             # transform points from (x, y) to (x, y, z) where y is duplicate x
             color_list = color_buckets[color]
             for it, point in enumerate(color_list):
                 color_list[it] = [point[0], point[0], point[1], point[-1]]
             
-            # find maximally empty points using 3-sided emptiness queries
-            emptiness_tree = KdTree.KdTree(color_list, self.color_weights)
-            max_empty_points = list()
-            for point in color_list:
-                min_point = None
-                max_point = None                
-                if isTypeLeft:
-                    min_point = [point[0], -np.inf,  point[2]]
-                    max_point = [np.inf,   point[1], np.inf  ]
-                else:
-                    min_point = [point[0], -np.inf,  -np.inf ]
-                    max_point = [np.inf,   point[1], point[2]]
-                
-                if emptiness_tree.report_emptiness(min_point, max_point):
-                    max_empty_points.append(point)
-                 
-            if len(max_empty_points) == 0:
-                print("before",len(color_list), color_list)
+            max_empty_points = self.convert_to_empty_orthants(color_list, self.color_weights, isTypeLeft)            
             
-            # transform 3d maximally empty points into 6d disjoint cubes             
-            max_empty_points.sort(key=lambda p: p[0])
-            max_empty_points.reverse()
-            
-            for it, p in enumerate(max_empty_points):
-                if it == 0:
-                    if isTypeLeft:
-                        transformed_dataset.append([-np.inf, p[0], p[1], np.inf, -np.inf, p[2], p[-1], p[0], p[2]])
-                    else:
-                        transformed_dataset.append([-np.inf, p[0], p[1], np.inf, p[2], np.inf, p[-1], p[0], p[2]])
-                    continue
-                
-                prev = max_empty_points[it - 1]
-                if isTypeLeft:
-                    # create y max bound if under previous point (from z)
-                    if p[2] < prev[2]:
-                        # make y max the prev y
-                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], -np.inf, p[2], p[-1], p[0], p[2]])
-                    else:
-                        # overhang case, find all prev points with ...
-                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], -np.inf, p[2], p[-1], p[0], p[2]])
-
-                else:
-                    # create y max bound if under previous point (from z)
-                    if p[2] > prev[2]:
-                        # make y max the prev y
-                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], p[2], np.inf, p[-1], p[0], p[2]])
-                    else:
-                        # overhang case, find all prev points with ...
-                        transformed_dataset.append([-np.inf, p[0], p[1], prev[1], p[2], np.inf, p[-1], p[0], p[2]])
-                
+            # append colored boxes to transformed dataset
+            # additive to not override transformed dataset over many colors
+            self.convert_to_boxes(max_empty_points, isTypeLeft, transformed_dataset)
+        
         return transformed_dataset
+    
+    # inputs a list of colored points and returns sublist of maximally empty orthants
+    def convert_to_empty_orthants(self, color_list, color_weights, isTypeLeft):
+        # find maximally empty points using 3-sided emptiness queries
+        max_empty_points = list()
+        emptiness_tree = KdTree.KdTree(color_list, self.color_weights)
+        for point in color_list:
+            min_point = None
+            max_point = None                
+            if isTypeLeft:
+                min_point = [point[0], -np.inf,  point[2]]
+                max_point = [np.inf,   point[1], np.inf  ]
+            else:
+                min_point = [point[0], -np.inf,  -np.inf ]
+                max_point = [np.inf,   point[1], point[2]]
+            
+            if emptiness_tree.report_emptiness(min_point, max_point):
+                max_empty_points.append(point)
+             
+        if len(max_empty_points) == 0:
+            print("before",len(color_list), color_list)
+        
+        return max_empty_points
+        
+    # inputs max empty points on dataset and updates new boxes into transformed dataset
+    def convert_to_boxes(self, max_empty_points, isTypeLeft, transformed_dataset=[]):
+        # transform 3d maximally empty points into 6d disjoint cubes             
+        max_empty_points.sort(key=lambda p: p[0])
+        max_empty_points.reverse()
+        
+        for it, p in enumerate(max_empty_points):
+            if it == 0:
+                if isTypeLeft:
+                    transformed_dataset.append([-np.inf, p[0], p[1], np.inf, -np.inf, p[2], p[-1], p[0], p[2]])
+                else:
+                    transformed_dataset.append([-np.inf, p[0], p[1], np.inf, p[2], np.inf, p[-1], p[0], p[2]])
+                continue
+            
+            prev = max_empty_points[it - 1]
+            if isTypeLeft:
+                # create y max bound if under previous point (from z)
+                if p[2] < prev[2]:
+                    # make y max the prev y
+                    transformed_dataset.append([-np.inf, p[0], p[1], prev[1], -np.inf, p[2], p[-1], p[0], p[2]])
+                else:
+                    # overhang case, find all prev points with ...
+                    transformed_dataset.append([-np.inf, p[0], p[1], prev[1], -np.inf, p[2], p[-1], p[0], p[2]])
+
+            else:
+                # create y max bound if under previous point (from z)
+                if p[2] > prev[2]:
+                    # make y max the prev y
+                    transformed_dataset.append([-np.inf, p[0], p[1], prev[1], p[2], np.inf, p[-1], p[0], p[2]])
+                else:
+                    # overhang case, find all prev points with ...
+                    transformed_dataset.append([-np.inf, p[0], p[1], prev[1], p[2], np.inf, p[-1], p[0], p[2]])
+        
+        return
     
     def build_matrix(self, node):
         heavy_left = list()

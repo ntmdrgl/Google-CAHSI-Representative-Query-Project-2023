@@ -68,7 +68,7 @@ for point in dataset:
 input_size = len(dataset)
 num_dim = 2
 # num_colors = len(color_to_city)
-num_queries = 10000
+num_queries = 100
 sub_dataset_size = 500
 
 # create sub dataset
