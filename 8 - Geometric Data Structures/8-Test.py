@@ -157,8 +157,8 @@ for it, query_range in enumerate(query_ranges):
         color_samples.append(rand_sample.color)
         num_valid_samples += 1
 t_avg = t_sum / num_queries
-print(f"Average Query time: {(t_avg) / (10 ** 6)} miliseconds\n")
-print(f"Returned samples: {num_valid_samples}")
+print(f"Average Query time: {(t_avg) / (10 ** 6)} miliseconds")
+print(f"Returned samples: {num_valid_samples}\n")
 print_freqs_graph(color_samples, "Kd-Tree")
 
 # build and query Range Tree
@@ -185,4 +185,5 @@ for it, query_range in enumerate(query_ranges):
         num_valid_samples += 1
 t_avg = t_sum / num_queries
 print(f"Average Query time: {(t_avg) / (10 ** 6)} miliseconds")
+print(f"Returned samples: {num_valid_samples}\n")
 print_freqs_graph(color_samples, "Range Tree")

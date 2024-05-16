@@ -6,9 +6,11 @@ Authors: Nathaniel Madrigal, Alexander Madrigal
 """
 
 import OrthogonalSearchTree_Old as OSTree
+import Dynamic2DTree as DTree
 import KdTree
 import numpy as np
 import time
+import sys
 
 class RSTree():
     def __init__(self, dataset, color_weights, x_const):
@@ -104,18 +106,20 @@ class RSTree():
             for it, point in enumerate(color_list):
                 color_list[it] = [point[0], point[0], point[1], point[-1]]
             
-            max_empty_points = self.convert_to_empty_orthants(color_list, self.color_weights, isTypeLeft)            
-            
+            # skyline_points = self.convert_to_skyline(color_list, self.color_weights, isTypeLeft)            
             # append colored boxes to transformed dataset
             # additive to not override transformed dataset over many colors
-            self.convert_to_boxes(max_empty_points, isTypeLeft, transformed_dataset)
+            # self.convert_to_boxes(skyline_points, isTypeLeft, transformed_dataset)
+            
+            transformed_dataset = self.report_meo_to_boxes(color_list, isTypeLeft)
+            
         
         return transformed_dataset
     
     # inputs a list of colored points and returns sublist of maximally empty orthants
-    def convert_to_empty_orthants(self, color_list, color_weights, isTypeLeft):
-        # find maximally empty points using 3-sided emptiness queries
-        max_empty_points = list()
+    def convert_to_skyline(self, color_list, color_weights, isTypeLeft):
+        # find skyline points using 3-sided emptiness queries
+        skyline_points = list()
         emptiness_tree = KdTree.KdTree(color_list, self.color_weights)
         for point in color_list:
             min_point = None
@@ -128,20 +132,20 @@ class RSTree():
                 max_point = [np.inf,   point[1], point[2]]
             
             if emptiness_tree.report_emptiness(min_point, max_point):
-                max_empty_points.append(point)
+                skyline_points.append(point)
              
-        if len(max_empty_points) == 0:
-            print("before",len(color_list), color_list)
+        if len(skyline_points) == 0:
+            print("NO SKYLINE FOUND, BEFORE:(len,list)",len(color_list), color_list)
         
-        return max_empty_points
+        return skyline_points
         
-    # inputs max empty points on dataset and updates new boxes into transformed dataset
-    def convert_to_boxes(self, max_empty_points, isTypeLeft, transformed_dataset=[]):
+    # inputs skyline points on dataset and updates new boxes into transformed dataset
+    def convert_to_boxes(self, skyline_points, isTypeLeft, transformed_dataset=[]):
         # transform 3d maximally empty points into 6d disjoint cubes             
-        max_empty_points.sort(key=lambda p: p[0])
-        max_empty_points.reverse()
+        skyline_points.sort(key=lambda p: p[0])
+        skyline_points.reverse()
         
-        for it, p in enumerate(max_empty_points):
+        for it, p in enumerate(skyline_points):
             if it == 0:
                 if isTypeLeft:
                     transformed_dataset.append([-np.inf, p[0], p[1], np.inf, -np.inf, p[2], p[-1], p[0], p[2]])
@@ -149,7 +153,7 @@ class RSTree():
                     transformed_dataset.append([-np.inf, p[0], p[1], np.inf, p[2], np.inf, p[-1], p[0], p[2]])
                 continue
             
-            prev = max_empty_points[it - 1]
+            prev = skyline_points[it - 1]
             if isTypeLeft:
                 # create y max bound if under previous point (from z)
                 if p[2] < prev[2]:
@@ -169,6 +173,153 @@ class RSTree():
                     transformed_dataset.append([-np.inf, p[0], p[1], prev[1], p[2], np.inf, p[-1], p[0], p[2]])
         
         return
+    
+    def report_meo_to_boxes(self, A, isTypeLeft):
+        # sort on 3rd dimension
+        # A = [[3,3,1,0], [4,4,2,0], [2,2,3,0], [1,1,4,0], [4,0,5,0], [-1,4,6,0], [0,-1,7,0]]
+        # A = [[4,4,1,0], [3,1,2,0], [0,3,3,0], [5,-1,4,0], [2,2,5,0], [1,1,6,0]]
+        # A = [[4,4,1,0], [3,1,2,0], [1,3,3,0], [5,-1,4,0], [0,2,5,0]]
+        A.sort(key=lambda p: p[2])
+    
+        meo_list = list()
+        point_list = list()
+        # find the max empty orthants of A using a plane sweep algorithm on d=3
+        for it, point in enumerate(A):
+            # empty case, add a single point as orthant
+            if it == 0:
+                # meo_list.append((point, [point, point, point]))
+                point_list.append((point, [None, None, None]))
+                # print("Initial point:", point_list[0][0])
+                d_tree = DTree.DTree(meo_list)
+                pd_tree = DTree.DTree(point_list)
+            else:
+                # print("\nStep: ", it)
+                # print("Point:", point)
+                
+                # Q: old meo which need to be updated
+                # QP: old point list which need to be updated
+                Q = d_tree.query_range_report([point[0], point[1]], [np.inf, np.inf])
+                QP = pd_tree.query_range_report([point[0], point[1]], [np.inf, np.inf])
+                # Q = d_tree.query_range_report([point[0], -np.inf], [np.inf, point[1]])
+                # QP = d_tree.query_range_report([point[0], -np.inf], [np.inf, point[1]])
+                
+                # print("QP:")
+                if QP:
+                    for qp in QP:
+                        # print(qp.point + [qp.color])
+                        pass
+                # print("Q:")
+                
+                if Q:
+                    for q in Q:
+                        # print(q.point + [q.color])
+                        pass
+                
+                if not QP:
+                    if pd_tree.query_range_report([-np.inf, -np.inf], [point[0], point[1]]) is None and not Q:
+                    # if pd_tree.query_range_report([-np.inf, point[1]], [point[0], np.inf]) is None:
+                        # add orthants on ends of meo (diagnols)
+                        point_list.sort(key=lambda p: p[0][0])
+                        p1 = point_list[0][0]
+                        p2 = point_list[-1][0]
+                        if point[0] < p1[0]:
+                            meo_list.append(([p1[0], point[1], point[2], point[3]], [p1, point, point]))
+                        elif point[0] > p2[0]:
+                            meo_list.append(([point[0], p2[1], point[2], point[3]], [point, p2, point]))
+                        else:
+                            print("ERROR")        
+                        point_list.append((point, [None, None, None]))
+                    elif Q:
+                        point_list.append((point, [None, None, None]))
+                        for q in Q:
+                            meo_list.append(([point[0], q.tup[1][1], point[2], point[3]], [point, q.tup[1], point]))
+                            meo_list.append(([q.tup[0][0], point[1], point[2], point[3]], [q.tup[0], point, point]))
+                    else:    
+                        # print("not skyline; no updates on points/meo")
+                        pass
+                elif QP:
+                    QP_list = list()
+                    # print("QP =")
+                    for qp in QP:
+                        # print(qp.point + [qp.color])
+                        QP_list.append(qp.point + [qp.color])
+                        
+                    point_list.append((point, [None, None, None]))
+                    
+                    if len(point_list) == 1:
+                        # replace point with new point
+                        # print("REMOVE POINT", point_list[0][0])
+                        point_list.pop(0)
+                    else:
+                        # only if orthants are found
+                        if Q:
+                            for q in Q:
+                                if q.tup[0] in QP_list and q.tup[1] in QP_list:
+                                    continue
+                                for qp in QP:
+                                    if q.tup[0] == (qp.point + [qp.color]):
+                                        meo_list.append(([point[0], q.point[1], point[2], point[3]], [point, (q.point + [q.color]), point]))
+                                    elif q.tup[1] == (qp.point + [qp.color]):
+                                        meo_list.append(([q.point[0], point[1], point[2], point[3]], [(q.point + [q.color]), point, point]))
+                    
+                if QP:
+                    for q in QP:
+                        for p in point_list:
+                            (point, tup) = p
+                            if point == (q.point + [q.color]):
+                                # print("REMOVE POINT", q.point + [q.color])
+                                point_list.remove(p)
+                                break
+                
+                if Q:
+                    for q in Q:
+                        for p in meo_list:
+                            (point, tup) = p
+                            if point == (q.point + [q.color]):
+                                # print("REMOVE MEO", q.point + [q.color])
+                                meo_list.remove(p)
+                                break
+                            
+                # print("New point list:")
+                for p in point_list:
+                    (point, tup) = p
+                    # print(point)
+                pd_tree = DTree.DTree(point_list)
+                
+                # print("New meo:")
+                for p in meo_list:
+                    (point, tup) = p
+                    # print(point, tup)
+                d_tree = DTree.DTree(meo_list)
+                  
+                
+        transformed_dataset = list()
+        
+        point_list.sort(key=lambda p: p[0][0])
+        p = point_list[0][0]
+        transformed_dataset.append([p[0], np.inf, p[1], np.inf, p[2], np.inf, p[-1], p[0], p[2]])
+        # if isTypeLeft:
+        #     transformed_dataset.append([-np.inf, p[0], p[1], np.inf, -np.inf, p[2], p[-1], p[0], p[2]])
+        # else:
+        #     transformed_dataset.append([-np.inf, p[0], p[1], np.inf, p[2], np.inf, p[-1], p[0], p[2]])
+        
+        for p in meo_list:
+            s3 = max(p[1][0][2], p[1][1][2])
+            # print(s3, "-", p[1][2][2], p[1][0], p[1][1])
+            
+            transformed_dataset.append([p[1][0][0], np.inf, p[1][0][1], p[1][1][1], s3, np.inf, p[-1], p[0][0], p[0][2]])
+            # if isTypeLeft:
+            #     transformed_dataset.append([-np.inf, p[1][0][0], p[1][0][1], p[1][1][1], -np.inf, s3, p[-1], p[0], p[2]])
+            # else:
+            #     transformed_dataset.append([-np.inf, p[1][0][0], p[1][0][1], p[1][1][1], s3, np.inf, p[-1], p[0], p[2]])
+
+        # print("boxes")                  
+        for t in transformed_dataset:
+            # print(t)
+            pass
+        
+        # sys.exit()
+        return transformed_dataset
     
     def build_matrix(self, node):
         heavy_left = list()

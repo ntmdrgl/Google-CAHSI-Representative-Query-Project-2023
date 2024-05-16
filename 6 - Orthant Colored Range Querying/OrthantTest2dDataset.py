@@ -11,6 +11,13 @@ import pandas as pd
 import math
 import time
 from matplotlib import pyplot as plt
+import os
+
+# change path to open datasets directory
+path = os.path.realpath(__file__) 
+dir = os.path.dirname(path) 
+dir = dir.replace('6 - Orthant Colored Range Querying', 'Datasets') 
+os.chdir(dir) 
 
 data = pd.read_csv('2d_dataset.txt', sep=',', header=None, names=['x', 'y'], low_memory=False)
 
@@ -59,9 +66,6 @@ for i in range(num_colors):
     color_weight_dict[i] = (len(dataset) - (color_freq_list[i])) / len(dataset)
     color_weight_list.append((len(dataset) - (color_freq_list[i])) / len(dataset)) 
 
-for it in range(5):
-    color_freq_list[it] /= len(dataset)
-
 # build tree       
 t_start = time.time_ns()
 tree = KDTree.KDTree(dataset, color_weight_dict) 
@@ -101,6 +105,8 @@ color_freqs = [None] * num_colors
 for i in range(num_colors):
     color_freqs[i] = color_counts[i] / (num_iterations - fail_count)
 
+for it in range(5):
+    color_freq_list[it] /= len(dataset)
 plt.bar(range(1, num_colors + 1), color_freq_list, color='green')
 plt.title('Frequencies of colors in dataset')
 plt.xlabel('Color')
@@ -113,11 +119,11 @@ for count in tree.color_counts:
 sample_color_freq = list()
 for count in tree.color_counts:
     sample_color_freq.append(count / sample_color_sum)
-plt.bar(range(1, num_colors + 1), sample_color_freq, color='yellow')
-plt.title('Frequencies of colors in sampled canonical nodes (atleast one of color)')
-plt.xlabel('Color')
-plt.ylabel('Frequencies')
-plt.show()
+# plt.bar(range(1, num_colors + 1), sample_color_freq, color='yellow')
+# plt.title('Frequencies of colors in sampled canonical nodes (atleast one of color)')
+# plt.xlabel('Color')
+# plt.ylabel('Frequencies')
+# plt.show()
 
 
 plt.bar(range(1, num_colors + 1), color_weight_list, color='blue')
@@ -132,10 +138,22 @@ plt.xlabel('Color')
 plt.ylabel('Frequency')
 plt.show()
 
-plt.scatter(x, y, c=colors)
-plt.title('Plot of successful query samples')
-plt.colorbar()
-plt.show()
+print("color freq in dataset:")
+for i in color_freq_list:
+    print(i)
+
+print("\ncolor weights:")
+for i in color_weight_list:
+    print(i)
+
+print("\ncolor freq from samples:")
+for i in color_freqs:
+    print(i)
+
+# plt.scatter(x, y, c=colors)
+# plt.title('Plot of successful query samples')
+# plt.colorbar()
+# plt.show()
 
 # x.append(100000)
 # y.append(100000)

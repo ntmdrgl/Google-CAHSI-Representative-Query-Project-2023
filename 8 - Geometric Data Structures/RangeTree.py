@@ -67,7 +67,7 @@ class RangeTree():
         return v
 
     def query_random_sample(self, min_point, max_point):
-        canonical_nodes = self.report_canonical_nodes(self.root, min_point, max_point, 0, [])
+        canonical_nodes = self.report_canonical_nodes(self.root, min_point, max_point, 0)
         if not canonical_nodes:
             return None
         
@@ -90,7 +90,8 @@ class RangeTree():
                 
         return v
         
-    def report_canonical_nodes(self, root, min_point, max_point, axis=0, canonical_nodes=[]):
+    def report_canonical_nodes(self, root, min_point, max_point, axis=0):
+        canonical_nodes = list()
         sp = self.report_split_node(self.root, min_point, max_point, axis)
         
         # search leaf node
@@ -105,10 +106,10 @@ class RangeTree():
                 if v.point[axis] > min_point[axis]:
                     # recursively find canonical nodes on higher axis if not at highest axis
                     # otherwise add v to canonical nodes
-                    if axis < self.num_dim - 1:
-                        self.report_canonical_nodes(v.right, min_point, max_point, axis + 1, canonical_nodes)
-                    else:
-                        canonical_nodes.append(v.right)
+                    # if axis < self.num_dim - 1:
+                    #     self.report_canonical_nodes(v.right, min_point, max_point, axis + 1, canonical_nodes)
+                    # else:
+                    canonical_nodes.append(v.right)
                     v = v.left
                 else:
                     v = v.right
@@ -120,17 +121,35 @@ class RangeTree():
             v = sp.right
             while v.left is not None and v.right is not None:
                 if v.point[axis] < max_point[axis]:
-                    if axis < self.num_dim - 1:
-                        self.report_canonical_nodes(v.left, min_point, max_point, axis + 1, canonical_nodes)    
-                    else:
-                        canonical_nodes.append(v.left)
+                    # if axis < self.num_dim - 1:
+                    #     self.report_canonical_nodes(v.left, min_point, max_point, axis + 1, canonical_nodes)    
+                    # else:
+                    canonical_nodes.append(v.left)
                     v = v.right
                 else:
                     v = v.left
             if min_point[axis] < v.point[axis] < max_point[axis]:
                 canonical_nodes.append(v)
                 
-        return canonical_nodes
+                
+        # base case, return list of canonical nodes if at highest dimension or list is empty
+        if axis == self.num_dim - 1 or (not canonical_nodes):
+            return canonical_nodes
+        else:
+            # recursive case, create and return a list of all canonical nodes in associate trees
+            C_sum = list()
+            
+            # loop through every canonical node in C
+            for i in range(len(canonical_nodes)):
+                # don't recursively call if canonical node has an empty T_assoc
+                if canonical_nodes[i].T_assoc is None:
+                    continue
+                # create a list of canonical nodes for T_assoc
+                C_assoc = self.report_canonical_nodes(canonical_nodes[i].T_assoc, min_point, max_point, axis + 1)
+                # add to C_sum only if C_assoc contains an node
+                if C_assoc:
+                    C_sum = C_sum + C_assoc
+            return C_sum
 
     def report_split_node(self, root, min_point, max_point, axis): 
         v = root

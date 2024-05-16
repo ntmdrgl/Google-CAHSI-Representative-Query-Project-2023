@@ -10,6 +10,13 @@ import pandas as pd
 import math
 import time
 from matplotlib import pyplot as plt
+import os
+
+# change path to open datasets directory
+path = os.path.realpath(__file__) 
+dir = os.path.dirname(path) 
+dir = dir.replace('5 - Dependent Weighted Random Query with Colors using KDTree', 'Datasets') 
+os.chdir(dir) 
 
 # name all 15 columns of data
 columnNames = ['age', 'workclass', 'fnlwgt', 'education', 'education-num', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'capital-gain', 'capital-loss', 'hours-per-week', 'native-country', 'income']
@@ -99,8 +106,12 @@ for color, coord in dataset:
 color_weight_dict = dict()
 color_weight_list = list()
 for i in range(1, len(color_int_dict) + 1):
-    color_weight_dict[str(i)] = 1 / (color_freq_list[i - 1] / len(dataset) ** 2)
-    color_weight_list.append(1 / (color_freq_list[i - 1] / len(dataset)) ** 2) 
+    # color_weight_dict[str(i)] = 1 / (color_freq_list[i - 1] / len(dataset) ** 2)
+    # color_weight_list.append(1 / (color_freq_list[i - 1] / len(dataset)) ** 2) 
+    
+    color_weight_dict[str(i)] = (len(dataset) - (color_freq_list[i - 1])) / len(dataset)
+    color_weight_list.append((len(dataset) - (color_freq_list[i - 1])) / len(dataset))
+    
     # color_weight_dict[str(i)] = 1
     # color_weight_list.append(1) 
 
@@ -130,7 +141,7 @@ for i in range(1, num_build_iterations + 1):
                 max[column] = dataset[row][1][column]
                 
     
-    num_query_iterations = 1000
+    num_query_iterations = 10000
     t_sum = 0
     none_count = 0
     for i in range(num_query_iterations):
@@ -148,8 +159,8 @@ for i in range(1, num_build_iterations + 1):
         max_coords[3] = 1
         min_coords[4] = 0
         max_coords[4] = 1
-        min_coords[5] = 0
-        max_coords[5] = 1
+        # min_coords[5] = 0
+        # max_coords[5] = 1
         
         # query random node over multiple trials
         t_start = time.time_ns()
@@ -171,8 +182,10 @@ for i in range(1, num_build_iterations + 1):
 # find frequencies of colors
 color_freqs = [None] * num_colors
 for i in range(num_colors):
-    color_freqs[i] = color_counts[i] / (num_query_iterations * num_build_iterations * success_rate)
-
+    if (num_query_iterations * num_build_iterations * success_rate) != 0:
+        color_freqs[i] = color_counts[i] / (num_query_iterations * num_build_iterations * success_rate)
+    else:
+        color_freqs[i] = 0
 sum = 0
 for count in tree.color_counts:
     sum += count
@@ -181,8 +194,8 @@ for i in range(len(tree.color_counts)):
     tree.color_counts[i] /= sum
 
 
-tree.color_counts.append(0)
-tree.color_counts.append(1)
+# tree.color_counts.append(0)
+# tree.color_counts.append(1)
 plt.bar(range(1, len(tree.color_counts) + 1), tree.color_counts, color='green')
 plt.title('Frequencies of colors in range')
 plt.xlabel('Color')
@@ -195,10 +208,22 @@ plt.xlabel('Color')
 plt.ylabel('Weight')
 plt.show()
 
-color_freqs.append(0)
-color_freqs.append(1)
+# color_freqs.append(0)
+# color_freqs.append(1)
 plt.bar(range(1, len(color_freqs) + 1), color_freqs, color='orange')
 plt.title('Frequencies of colors from random query sampling')
 plt.xlabel('Color')
 plt.ylabel('Frequency')
 plt.show()
+
+print("color freq in dataset:")
+for i in tree.color_counts:
+    print(i)
+
+print("\ncolor weights:")
+for i in color_weight_list:
+    print(i)
+
+print("\ncolor freq from samples:")
+for i in color_freqs:
+    print(i)

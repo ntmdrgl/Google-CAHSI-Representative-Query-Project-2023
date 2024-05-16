@@ -5,24 +5,24 @@ from matplotlib import pyplot as plt
 import time
 import math
 
-databaseSize = 1000
-numColors = 10 
+databaseSize = 100000
+numColors = 5
 
 # assign weights to colors
 colorWeightDict = dict()
 color_weight_list = list()
 for i in range(1, numColors + 1):
-    colorWeightDict[str(i)] = 1000 * (0.5 * math.exp(-0.5 * i))
-    color_weight_list.append(1000 * (0.5 * math.exp(-0.5 * i)))  
+    colorWeightDict[str(i)] = 1000 * (0.7 * math.exp(-0.7 * i))
+    color_weight_list.append(1000 * (0.7 * math.exp(-0.7 * i)))  
 
 # create a database of colored 1-D points
-color_freq_list = [100,100,100,100,100,100,100,100,100,100]
+color_freq_list = [0.2] * numColors
 database = list()
 for i in range(1, databaseSize + 1):
     database.append(iwrs.Node(str(i % numColors + 1), i))
 
-for it in range(10):
-    color_freq_list[it] /= len(database)
+# for it in range(numColors):
+#     color_freq_list[it] /= len(database)
 
 # create class
 cwrs = iwrs.ColoredWeightedRandomSampling(colorWeightDict)
@@ -74,3 +74,15 @@ plt.title('Frequencies of colors from random query sampling')
 plt.xlabel('Color')
 plt.ylabel('Frequency')
 plt.show()   
+
+print("color freq in dataset:")
+for i in color_freq_list:
+    print(i)
+
+print("\ncolor weights:")
+for i in color_weight_list:
+    print(i)
+
+print("\ncolor freq from samples:")
+for i in colorFreqs:
+    print(i)

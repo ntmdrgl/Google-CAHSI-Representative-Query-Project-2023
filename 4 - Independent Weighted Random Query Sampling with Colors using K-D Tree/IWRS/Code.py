@@ -316,7 +316,7 @@ class ColoredWeightedRandomSampling():
         # to 2-D bounding box [x_min, x_max] x (-infinity, x_min)
         C = list()
         if Q.y_min is None:
-            Q.y_min = -np.infnhb 
+            Q.y_min = -np.inf
         if Q.y_max is None:
             Q.y_max = Q.x_min
         

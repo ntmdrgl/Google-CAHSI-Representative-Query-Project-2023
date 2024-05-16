@@ -1,22 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Created on February 7, 2024
+Created on March 6, 2024
 Authors: Nathaniel Madrigal, Alexander Madrigal
-
 """
+
 import RectangularSearchTree_Old as RSTree
-# import RectangularSearchTree as RSTree
 from matplotlib import pyplot as plt
-import numpy as np
+import pandas as pd
 import random
 import math
 import time
-import json
-
 import os
-import sys
-import psutil
-# from memory_profiler import profile
+
 
 # change path to open datasets directory
 path = os.path.realpath(__file__) 
@@ -24,72 +19,53 @@ dir = os.path.dirname(path)
 dir = dir.replace('7 - 2D Rectangular Query with Orthant Data Structures', 'Datasets') 
 os.chdir(dir) 
 
-# extract dictionaries from json file
-print("Extracting json file...")
-data = []
-with open('yelp_academic_dataset_business.json', 'r', encoding="utf8") as file:
-    for line in file:
-        data.append(json.loads(line))
+# extract data from 2d_dataset.txt
+print("Extracting txt file...")
+data = pd.read_csv('2d_dataset.txt', sep=',', header=None, names=['x', 'y'], low_memory=False)
+dataframe = pd.DataFrame(data)
+dataset = dataframe.to_numpy().tolist()
+    # original colors assigned to dataset:
+    # color 0: 1-1725
+    # color 1: 1726-39805
+    # color 2: 39806-334533
+    # color 3: 334534-1039726
+    # color 4: 1039727-4110608
 
-num_colors = 1400
-
-# take arguments from dictionary and covert to list
-dataset = list()
-city_to_count = dict()
-city_to_color = dict()
-color_to_city = dict()
-city_num = 1
-for it, d in enumerate(data):
-    x = d.get("latitude")
-    y = d.get("longitude")
-    city = d.get("city")
-    
-    if city not in city_to_color.keys():
-        city_to_count[city] = 1
-        city_to_color[city] = city_num
-        color_to_city[city_num] = city
-        city_num += 1
+for it, point in enumerate(dataset):
+    if it < 1725:
+        dataset[it].append(1)
+    elif it < 39805:
+        dataset[it].append(2)
+    elif it < 334533:
+        dataset[it].append(3)
+    elif it < 1039726:
+        dataset[it].append(4)
     else:
-        city_to_count[city] += 1
-        
-    # dataset.append([x, y, city_to_color[city]])
-    dataset.append([x, y, it % num_colors + 1])   
-    
-# normalize points
-print("Normalizing data...\n")
-x_min = 27.555127
-x_max = 53.6791969
-y_min = -120.095137
-y_max = -73.2004570502
-for point in dataset:
-    point[0] = (point[0] - x_min) / (x_max - x_min)
-    point[1] = (point[1] - y_min) / (y_max - y_min)
-    
+        dataset[it].append(5)
+
 input_size = len(dataset)
-num_dim = 2
-# num_colors = len(color_to_city)
-num_queries = 100
-sub_dataset_size = 500
+num_dim = len(dataset[0]) - 1
+num_colors = 5
 
-# create sub dataset
-sub_dataset = list()
-for i in range(sub_dataset_size):
-    sub_dataset.append(dataset.pop(random.randint(0, len(dataset)-1)))    
+# normalize data (highest value for x and y is 100000.0)
+# assign colors from 1 to num_colors to dataset's points
+print("Normalizing data...")
+for it, point in enumerate(dataset):
+    point[0] /= 100000
+    point[1] /= 100000
+    point.append(it % num_colors + 1)
 
-# # Simulated dataset
-# input_size = 1000
-# num_dim = 2
-# dataset = np.random.default_rng().random((input_size, num_dim)).tolist()
-# num_colors = 20
-# num_queries = 100
-
-# # Add colors to simulated dataset
-# for point in dataset:
-#     point.append(i % num_colors + 1)
-# sub_dataset = dataset
-# sub_dataset_size = input_size
+# generate dictionary of weights for colors
+color_freq_list = [1725, 38080, 294728, 705193, 3070882]
+color_weight_dict = dict()
+color_weight_list = list()
+for i in range(1, num_colors + 1):
+    color_weight_dict[i] = (len(dataset) - (color_freq_list[i - 1])) / len(dataset)
+    color_weight_list.append((len(dataset) - (color_freq_list[i - 1])) / len(dataset))   
 
 # generate a set of queries to be used by data structure
+print("Generating query ranges...")
+num_queries = 1000
 query_ranges = list() # list of ranges of type [min_point, max_point]
 for it in range(num_queries):
     min_point = list()
@@ -101,22 +77,21 @@ for it in range(num_queries):
         min_point.append(axis_range[0])
         max_point.append(axis_range[1])
     query_ranges.append([min_point, max_point])
-    
-# generate dictionary of weights for colors
-color_weight_dict = dict()
-color_weight_list = list()
-for i in range(1, num_colors + 1):
-    # weight_func = city_to_count[color_to_city[i]]
-    weight_func = 1    
-       
-    color_weight_dict[i] = weight_func
-    color_weight_list.append(weight_func)   
+
+# create sub dataset
+print("Generating subset dataset...\n")
+sub_dataset_size = 200
+random.shuffle(dataset)
+sub_dataset = list()
+for i in range(sub_dataset_size):
+    # sub_dataset.append(dataset.pop(random.randint(0, len(dataset)-1)))
+    sub_dataset.append(dataset.pop())    
 
 print("Input size:", input_size)
-print("Subset size:", sub_dataset_size)
 print("Dimensions:", num_dim)
 print("Colors:", num_colors)
-print("Queries per tree:", num_queries, "\n")
+print("Queries per tree:", num_queries)
+print("Subset size:", sub_dataset_size, "\n")
 
 # build tree
 print("Building tree...") 
@@ -128,7 +103,7 @@ print(f"Build time: {(t_end - t_start) / (10 ** 9)} seconds\n")
 
 heavy_nodes = list()
 avg_query_times = list()
-for i in range(0, 3):
+for i in range(0, 2): # 0, 3
     if i == 0:
         heavy_nodes.append(0)
         avg_query_times.append(0)
@@ -192,11 +167,19 @@ for i in range(0, 3):
         heavy_nodes.append(0)
     avg_query_times.append((t_avg) / (10 ** 6))
     
-# plt.bar(range(1, num_colors + 1), color_weight_list, color='blue')
-# plt.title('Weights of colors')
-# plt.xlabel('Color')
-# plt.ylabel('Weight')
-# plt.show()
+for it in range(5):
+    color_freq_list[it] /= len(dataset)
+plt.bar(range(1, num_colors + 1), color_freq_list, color='green')
+plt.title('Frequencies of colors in dataset')
+plt.xlabel('Color')
+plt.ylabel('Frequencies')
+plt.show()
+    
+plt.bar(range(1, num_colors + 1), color_weight_list, color='blue')
+plt.title('Weights of colors')
+plt.xlabel('Color')
+plt.ylabel('Weight')
+plt.show()
 
 color_counts = [0] * num_colors
 for it, color in enumerate(color_samples):
@@ -216,17 +199,29 @@ plt.xlabel('Color')
 plt.ylabel('Frequency')
 plt.show()
 
-xs = list()
-for i in range(0, len(heavy_nodes)):
-    xs.append(i * x_const_mult)
-plt.bar(xs, heavy_nodes, color='green')
-plt.title("Heavy nodes vs. X Const")
-plt.xlabel('X Const')
-plt.ylabel('Heavy Node (%)')
-plt.show()
+# print("color freq in dataset:")
+# for i in color_freq_list:
+#     print(i)
 
-plt.bar(range(0, len(avg_query_times)), avg_query_times, color='turquoise')
-plt.title("Query time vs. X Const")
-plt.xlabel('X Const')
-plt.ylabel('Average Query Time (ms)')
-plt.show()
+# print("\ncolor weights:")
+# for i in color_weight_list:
+#     print(i)
+
+# print("\ncolor freq from samples:")
+# for i in color_freqs:
+#     print(i)
+
+# xs = list()
+# for i in range(0, len(heavy_nodes)):
+#     xs.append(i * x_const_mult)
+# plt.bar(xs, heavy_nodes, color='green')
+# plt.title("Heavy nodes vs. X Const")
+# plt.xlabel('X Const')
+# plt.ylabel('Heavy Node (%)')
+# plt.show()
+
+# plt.bar(range(0, len(avg_query_times)), avg_query_times, color='turquoise')
+# plt.title("Query time vs. X Const")
+# plt.xlabel('X Const')
+# plt.ylabel('Average Query Time (ms)')
+# plt.show()
