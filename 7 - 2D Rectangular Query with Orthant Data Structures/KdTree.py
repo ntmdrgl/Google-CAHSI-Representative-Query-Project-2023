@@ -93,8 +93,10 @@ class KdTree():
             dataset_left = dataset[:median + 1]
             dataset_right = dataset[median + 1:]
             min_left = v.min_point
-            max_left = v.point
-            min_right = v.point
+            max_left = max_point.copy()
+            max_left[axis] = v.point[axis] 
+            min_right = min_point.copy()
+            min_right[axis] = v.point[axis] 
             max_right = v.max_point
             
             v.left = self.build_kdtree(dataset_left, depth + 1, min_left, max_left)
@@ -128,7 +130,7 @@ class KdTree():
         # search internal node
         else:
             # fully intersects
-            if all(min_point[i] < root.min_point[i] and root.max_point[i] < max_point[i] for i in range(self.num_dim)):
+            if all(min_point[i] <= root.min_point[i] and root.max_point[i] <= max_point[i] for i in range(self.num_dim)):
                 canonical_nodes.append(root)
             # partially intersects
             elif not any(root.min_point[i] > max_point[i] or root.max_point[i] < min_point[i] for i in range(self.num_dim)):

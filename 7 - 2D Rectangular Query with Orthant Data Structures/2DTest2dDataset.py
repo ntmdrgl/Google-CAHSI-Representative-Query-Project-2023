@@ -65,7 +65,7 @@ for i in range(1, num_colors + 1):
 
 # generate a set of queries to be used by data structure
 print("Generating query ranges...")
-num_queries = 1000
+num_queries = 10000
 query_ranges = list() # list of ranges of type [min_point, max_point]
 for it in range(num_queries):
     min_point = list()
@@ -76,6 +76,8 @@ for it in range(num_queries):
             (axis_range[0], axis_range[1]) = (axis_range[1], axis_range[0])
         min_point.append(axis_range[0])
         max_point.append(axis_range[1])
+    # min_point = [0,0]
+    # max_point = [1,1]
     query_ranges.append([min_point, max_point])
 
 # create sub dataset
@@ -139,10 +141,10 @@ for i in range(0, 2): # 0, 3
         
         if rand_sample is not None:
             # if not (x_range[0] < rand_sample.orig_coords[0] < x_range[1] and y_range[0] < rand_sample.orig_coords[1] < y_range[1]):
-            if not (min_point[0] < rand_sample.original_point[0] < max_point[0] and min_point[1] < rand_sample.original_point[1] < max_point[1]):
-                allCorrect = False
-                # print("INCORRECT", rand_sample.orig_coords, x_range, y_range)
-                print("INCORRECT", rand_sample.original_point, x_range, y_range)
+            # if not (min_point[0] < rand_sample.original_point[0] < max_point[0] and min_point[1] < rand_sample.original_point[1] < max_point[1]):
+            #     allCorrect = False
+            #     # print("INCORRECT", rand_sample.orig_coords, x_range, y_range)
+            #     print("INCORRECT", rand_sample.original_point, x_range, y_range)
             color_samples.append(rand_sample.color)
             num_valid_samples += 1
             sum_heavy += tree.heavy_count
@@ -195,6 +197,12 @@ for it, count in enumerate(color_counts):
         
 plt.bar(range(1, num_colors + 1), color_freqs, color='orange')
 plt.title("Frequencies of colors from random samples")
+plt.xlabel('Color')
+plt.ylabel('Frequency')
+plt.show()
+
+plt.bar(range(1, num_colors + 1), tree.color_freqs, color='red')
+plt.title("Frequencies of colors from canonical nodes")
 plt.xlabel('Color')
 plt.ylabel('Frequency')
 plt.show()

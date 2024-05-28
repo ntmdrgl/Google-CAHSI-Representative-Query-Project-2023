@@ -8,10 +8,10 @@ import numpy as np
 
 class OrthogonalSearchTree():
     def __init__(self, dataset, color_weights):
-        if len(dataset[0]) == 4:
-            self.num_dim = 3
-        elif len(dataset[0]) == 9:
-            self.num_dim = 6                   # number of dimensions in points
+        # if len(dataset[0]) == 4:
+        #     self.num_dim = 3
+        # elif len(dataset[0]) == 9:
+        self.num_dim = 6                   # number of dimensions in points
         self.num_colors = len(color_weights)   # number of colors in points
         self.color_weights = color_weights     # dictionary of colors mapped to weights
         self.node_id = 0
@@ -24,14 +24,16 @@ class OrthogonalSearchTree():
         
     class Node():
         def __init__(self, colored_point):
-            if len(colored_point) == 4:
-                self.point = colored_point.copy()
-                self.color = self.point.pop()
+            # if len(colored_point) == 4:
+            #     self.point = colored_point.copy()
+            #     self.color = self.point.pop()
             
             if len(colored_point) == 9:
                 self.point = colored_point[0:7]
                 self.original_point = colored_point[7:]
                 self.color = self.point.pop()
+            else:
+                print("ERROR, wrong number of args")
         
         left = None      # left child
         right = None     # right child
@@ -116,7 +118,8 @@ class OrthogonalSearchTree():
         
     # returns a random sample within the range 
     def report_colors(self, min_point, max_point):
-        C = self.find_canonical_nodes(min_point, max_point, self.root)
+        # C = self.find_canonical_nodes(min_point, max_point, self.root)
+        C = self.report_canonical_nodes(min_point, max_point, self.root)
         return C
     
     # returns a list of all canonical nodes within the range 
@@ -171,6 +174,46 @@ class OrthogonalSearchTree():
                 if C_right:
                     C = C + C_right
         
+        return C
+    
+    def report_canonical_nodes(self, min_point, max_point, root):
+        # create an empty list to contain all canonical nodes within range
+        C = list()
+        
+        # search leaf node
+        if root.left is None and root.right is None:
+            # print("  Leaf")
+            # print("  x", min_point[0], root.point[0], max_point[0])
+            # print("  y", min_point[1], root.point[1], max_point[1])
+            if all(min_point[i] <= root.point[i] <= max_point[i] for i in range(self.num_dim)):
+            # if not any(root.point[i] > max_point[i] or root.point[i] < min_point[i] for i in range(self.num_dim)):
+                # print("  Leaf added")
+                C.append(root)
+            else:
+                # print("  Leaf not in range")
+                pass
+        # search internal node
+        else:
+            # print("  x", min_point[0], root.min_point[0], root.max_point[0], max_point[0])
+            # print("  y", min_point[1], root.min_point[1], root.max_point[1], max_point[1])
+            # fully intersects
+            if all(min_point[i] <= root.box.min_point[i] and root.box.max_point[i] <= max_point[i] for i in range(self.num_dim)):
+                # print("  Full")
+                C.append(root)
+            # partially intersects
+            elif not any(root.box.min_point[i] > max_point[i] or root.box.max_point[i] < min_point[i] for i in range(self.num_dim)):
+                # print("  Partial")
+                C_left = self.report_canonical_nodes(min_point, max_point, root.left)
+                C_right = self.report_canonical_nodes(min_point, max_point, root.right)
+                
+                if C_left:
+                    C = C + C_left
+                if C_right:
+                    C = C + C_right
+            else:
+                # print("  No intersect")
+                pass
+                    
         return C
     
     # sort_dataset implementation to sort dataset in dataset

@@ -75,8 +75,10 @@ class DTree():
             dataset_left = dataset[:median + 1]
             dataset_right = dataset[median + 1:]
             min_left = v.min_point
-            max_left = v.point
-            min_right = v.point
+            max_left = max_point.copy()
+            max_left[axis] = v.point[axis] 
+            min_right = min_point.copy()
+            min_right[axis] = v.point[axis] 
             max_right = v.max_point
             
             v.left = self.build_kdtree(dataset_left, depth + 1, min_left, max_left)
@@ -103,7 +105,8 @@ class DTree():
         if self.root is None:
             return None
         
-        canonical_nodes = self.find_canonical_nodes(min_point, max_point, self.root)
+        canonical_nodes = self.report_canonical_nodes(min_point, max_point, self.root)
+        # canonical_nodes = self.find_canonical_nodes(min_point, max_point, self.root)
         if not canonical_nodes:
             return None
         
@@ -160,7 +163,7 @@ class DTree():
             
             for dim in range(self.num_dim):
                 # if root's box does not intersect range, return
-                if root.min_point[dim] > max_point[dim] or root.max_point[dim] < min_point[dim]:
+                if root.min_point[dim] >= max_point[dim] or root.max_point[dim] <= min_point[dim]:
                     return C
                 
                 # if root's box is not contained in range, break loop
@@ -183,4 +186,44 @@ class DTree():
                 if C_right:
                     C = C + C_right
         
+        return C
+    
+    def report_canonical_nodes(self, min_point, max_point, root):
+        # create an empty list to contain all canonical nodes within range
+        C = list()
+        
+        # search leaf node
+        if root.left is None and root.right is None:
+            # print("  Leaf")
+            # print("  x", min_point[0], root.point[0], max_point[0])
+            # print("  y", min_point[1], root.point[1], max_point[1])
+            if all(min_point[i] <= root.point[i] <= max_point[i] for i in range(self.num_dim)):
+            # if not any(root.point[i] > max_point[i] or root.point[i] < min_point[i] for i in range(self.num_dim)):
+                # print("  Leaf added")
+                C.append(root)
+            else:
+                # print("  Leaf not in range")
+                pass
+        # search internal node
+        else:
+            # print("  x", min_point[0], root.min_point[0], root.max_point[0], max_point[0])
+            # print("  y", min_point[1], root.min_point[1], root.max_point[1], max_point[1])
+            # fully intersects
+            if all(min_point[i] <= root.min_point[i] and root.max_point[i] <= max_point[i] for i in range(self.num_dim)):
+                # print("  Full")
+                C.append(root)
+            # partially intersects
+            elif not any(root.min_point[i] > max_point[i] or root.max_point[i] < min_point[i] for i in range(self.num_dim)):
+                # print("  Partial")
+                C_left = self.report_canonical_nodes(min_point, max_point, root.left)
+                C_right = self.report_canonical_nodes(min_point, max_point, root.right)
+                
+                if C_left:
+                    C = C + C_left
+                if C_right:
+                    C = C + C_right
+            else:
+                # print("  No intersect")
+                pass
+                    
         return C

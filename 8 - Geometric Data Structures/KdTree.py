@@ -19,7 +19,8 @@ class KdTree():
         
     class Node():
         def __init__(self, colored_point):
-            self.point = colored_point.copy()
+            self.point = colored_point[0:7].copy()
+            self.original_point = colored_point[7:].copy()
             self.color = self.point.pop()
         
         left = None      # left child
