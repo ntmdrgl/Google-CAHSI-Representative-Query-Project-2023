@@ -381,7 +381,7 @@ class RSTree():
                 if not O:
                     # case 1, point is already in B(O), don't add point
                     # if point_tree.query_range_report([-np.inf, -np.inf], [point[0], point[1]]) is not None:
-                    if point_tree.query_range_report([point[0], -np.inf], [np.inf, point[1]]) is not None:        
+                    if point_tree.query_range_report([point[0], -np.inf], [np.inf, point[1]]):        
                         # print("CASE 1")
                         pass
                     
@@ -407,7 +407,7 @@ class RSTree():
                         z = pz[2]
                         complete_meo_list.append(([x,y,point[2]],[px,py,point]))
                         if P:
-                            if not (m.tup[0] in P and m.tup[1] in P):  
+                            if not ((m.tup[0] in P) and (m.tup[1] in P)):  
                                 try_meo.append(([point[0],y,z], [point,py,pz]))
                                 try_meo.append(([x,point[1],z], [px,point,pz]))
                         elif not P:
@@ -482,11 +482,11 @@ class RSTree():
                 else:
                     transformed_dataset.append([-np.inf, p1[0], p1[1], p2[1], pmax[2], p3[2], p1[-1], p1[0], pmax[2]])
 
-        print("boxes")   
-        for t in transformed_dataset:
-            print(t)
-            pass
-        print()
+        # print("boxes")   
+        # for t in transformed_dataset:
+        #     print(t)
+        #     pass
+        # print()
         
         # sys.exit()
         return transformed_dataset

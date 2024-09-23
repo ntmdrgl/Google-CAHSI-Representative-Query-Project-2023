@@ -88,6 +88,16 @@ class DTree():
             
         return v
 
+    def report_leaves(self, root, leaves=[]):
+        if root is None:
+            return
+        if root.left is None and root.right is None:
+            leaves.append(root)
+        else: 
+            self.report_leaves(root.left, leaves)
+            self.report_leaves(root.right, leaves)
+        return leaves
+
     def insert(self, point):
         pass
         

@@ -82,7 +82,7 @@ for it in range(num_queries):
 
 # create sub dataset
 print("Generating subset dataset...\n")
-sub_dataset_size = 200
+sub_dataset_size = 2000
 random.shuffle(dataset)
 sub_dataset = list()
 for i in range(sub_dataset_size):
