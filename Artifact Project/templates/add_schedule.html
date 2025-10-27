@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<html>
+   <head>
+      <title>Add Schedule</title>
+   </head>
+   <body>
+      <h3>Add Schedule</h3>
+      <p>Required Fields marked with *</p>
+      <form action="/add_schedule" method="POST">
+         <label>Schedule Name*</label>
+         <input type="text" name="name" placeholder="name">
+         <br><br>
+         <label>Projects</label><br>
+         {% for project in projects %}
+            <input type="checkbox" name="projects[]" value="{{ project.id }}"> {{ project.name }}<br>
+         {% endfor %}
+         <br><label>Organizations</label><br>
+         {% for organization in organizations %}
+             <input type="checkbox" name="organizations[]" value="{{ organization.id }}"> {{ organization.name }}<br>
+         {% endfor %}
+         <br><label>Days</label>
+         <br>
+         <input type="checkbox" name="Mo" value="Mo"> Mon
+         <input type="checkbox" name="Tu" value="Tu"> Tue
+         <input type="checkbox" name="We" value="We"> Wed
+         <input type="checkbox" name="Th" value="Th"> Thu
+         <input type="checkbox" name="Fr" value="Fr"> Fri
+         <input type="checkbox" name="Sa" value="Sa"> Sat
+         <input type="checkbox" name="Su" value="Su"> Sun
+         <br><br>
+         <label>Start Time</label>
+         <input type="time" name="start_time">
+         <br><br>
+         <label>End Time</label>
+         <input type="time" name="end_time">
+         <br><br>
+         <label>Private?</label>
+         <input type="checkbox" name= "private">
+         <br><br>
+         
+         <button type="submit">Add Schedule</button>
+      </form>
+      <br>
+      <a href="/profile">Return</a>
+      <br><br>
+      {% if msg %}
+      <p>{{ msg }}</p>
+      {% endif %}   
+   </body>
+</html>
+

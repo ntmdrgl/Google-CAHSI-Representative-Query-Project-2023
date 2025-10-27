@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+
+<html>
+   <head>
+      <title>Add Organization</title>
+   </head>
+   <body>
+      <h3>Add Organization</h3>
+      <form action="/add_organization" method="POST">
+         <label>Organization Name</label>
+         <input type="text" name="name" placeholder="name">
+         <br><br>
+         <label>Tag</label>
+         <input type="search" id="searchInput" name="tag" list="searchValues" placeholder="search...">
+            <datalist id="searchValues">
+               {% for organization_tag in organization_tags_list %}
+                  <option value="{{ organization_tag }}">{{ organization_tag }}</option>
+               {% endfor %}
+            </datalist>
+         <br><br>
+         <label>Connections</label><br>
+         {% for connection in connections %}
+             <input type="checkbox" name="connections[]" value="{{ connection.id }}"> {{ connection.name }}<br>
+         {% endfor %}
+         <label>Start Date</label>
+         <input type="date" name="start_date">
+         <br><br>
+         <label>End Date</label>
+         <input type="date" name="end_date">
+         <br><br>
+         <label>Ongoing?</label>
+         <input type="checkbox" name= "is_ongoing">
+         <br><br>
+         <label>Private?</label>
+         <input type="checkbox" name= "private">
+         <br><br>
+         
+         <button type="submit">Add Organization</button>
+      </form>
+      <br>
+      <a href="/profile">Return</a>
+      <br><br>
+      {% if msg %}
+      <p>{{ msg }}</p>
+      {% endif %}   
+   </body>
+</html>
+

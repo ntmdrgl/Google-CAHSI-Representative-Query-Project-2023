@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .collapsible {
+          background-color: #777;
+          color: white;
+          cursor: pointer;
+          padding: 18px;
+          width: 100%;
+          border: none;
+          text-align: left;
+          outline: none;
+          font-size: 15px;
+        }
+        
+        .active, .collapsible:hover {
+          background-color: #555;
+        }
+        
+        .content {
+          padding: 0 18px;
+          display: block;
+          overflow: hidden;
+          background-color: #f1f1f1;
+        }
+        
+    </style>
+</head>
+
+<html>
+   <head>
+      <title>Profile Page</title>
+   </head>
+   <body>
+      <h3> {{user.first_name}}'s Profile </h3> 
+      <a href="/home" type="button">Home</a><br>
+      <table>
+         <thead>
+            <th>Id</th> 
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Date of Birth</th>
+            <th>DOB Privacy</th>
+            <th>Username</th>
+            <th>Password</th>
+         </thead>
+         <tbody>
+            <td>{{user.id}}</td>
+            <td>{{user.first_name}}</td>
+            <td>{{user.last_name}}</td>
+            <td>{{user.birthday}}</td>
+            <td>{% if user.private %}Private{% else %}Public{% endif %}<a href="/private_user/{{user.id}}" type="button">(Change)</a></td>
+            <td>{{user.account.username}}</td>
+            <td>{{user.account.password}}</td>
+         </tbody>
+      </table>
+      <br><br>
+      
+      <a href="/add_connection">Add Connection</a><br>
+      <button class="collapsible">Connections</button>
+      <div class="content">
+      <table>
+         <thead>
+            <th>Id</th>
+            <th>Name</th>
+            <th>More Info</th>
+            <th>#</th>
+         </thead>
+         {% for data in user.connections %}
+         <tbody>
+            <td>{{data.id}}</td>
+            <td>{{data.name}}</td>
+            <td><a href="/view_connection_profile/{{data.id}}" type="button">View</a></td>
+            <td><a href="/delete_connection/{{data.id}}" type="button">Delete</a></td>
+         </tbody>
+         {% endfor %}
+      </table>
+      </div>
+      <br><br>
+      
+      <a href="/add_education">Add Education</a><br>
+      <button class="collapsible"> Education </button>
+      <div class="content">
+      <table>
+         <thead>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Degree</th>
+            <th>Field of Study</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Ongoing?</th>
+            <th>Privacy</th>
+            <th>#</th>
+         </thead>
+         {% for data in user.educations %}
+         <tbody>
+            <td>{{data.id}}</td>
+            <td>{{data.name}}</td>
+            <td>{% if data.degrees %}{{data.degrees}}{% else %}{% endif %}</td>
+            <td>{% if data.fields_of_study %}{{data.fields_of_study}}{% else %}{% endif %}</td>
+            <td>{% if data.start_date %}{{data.start_date}}{% else %}{% endif %}</td>
+            <td>{% if data.end_date %}{{data.end_date}}{% else %}{% endif %}</td>
+            <td>{% if data.is_ongoing %}{{data.is_ongoing}}{% else %}{% endif %}</td>
+            <td>{% if data.private %}Private{% else %}Public{% endif %}<a href="/private_education/{{data.id}}" type="button">(Change)</a></td>
+            <td><a href="/delete_education/{{data.id}}" type="button">Delete</a></td>
+         </tbody>
+         {% endfor %}
+      </table>
+      </div>
+      <br><br>
+      
+      <a href="/add_project">Add Project</a><br>
+      <button class="collapsible"> Project </button>
+      <div class="content">
+      <table>
+         <thead>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Tag</th>
+            <th>Connections</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Ongoing?</th>
+            <th>Privacy</th>
+            <th>#</th>
+         </thead>
+         {% for data in user.projects %}
+         <tbody>
+            <td>{{data.id}}</td>
+            <td>{{data.name}}</td>
+            <td>{% if data.tags %}{{data.tags}}{% else %}{% endif %}</td>
+            <td>
+            {% if data.connections %}
+                {% for connection in data.connections %}
+                    {{ connection.name }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            {% endif %}
+            </td>
+            <td>{% if data.start_date %}{{data.start_date}}{% else %}{% endif %}</td>
+            <td>{% if data.end_date %}{{data.end_date}}{% else %}{% endif %}</td>
+            <td>{% if data.is_ongoing %}{{data.is_ongoing}}{% else %}{% endif %}</td>
+            <td>{% if data.private %}Private{% else %}Public{% endif %}<a href="/private_project/{{data.id}}" type="button">(Change)</a></td>
+            <td><a href="/delete_project/{{data.id}}" type="button">Delete</a></td>
+         </tbody>
+         {% endfor %}
+      </table>
+      </div>
+      <br><br>
+      
+      <a href="/add_organization">Add Organization</a><br>
+      <button class="collapsible"> Organization </button>
+      <div class="content">
+      <table>
+         <thead>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Tag</th>
+            <th>Connections</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Ongoing?</th>
+            <th>Privacy</th>
+            <th>#</th>
+         </thead>
+         {% for data in user.organizations %}
+         <tbody>
+            <td>{{data.id}}</td>
+            <td>{{data.name}}</td>
+            <td>{% if data.tags %}{{data.tags}}{% else %}{% endif %}</td>
+            <td>
+            {% if data.connections %}
+                {% for connection in data.connections %}
+                    {{ connection.name }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            {% endif %}
+            </td>
+            <td>{% if data.start_date %}{{data.start_date}}{% else %}{% endif %}</td>
+            <td>{% if data.end_date %}{{data.end_date}}{% else %}{% endif %}</td>
+            <td>{% if data.is_ongoing %}{{data.is_ongoing}}{% else %}{% endif %}</td>
+            <td>{% if data.private %}Private{% else %}Public{% endif %}<a href="/private_organization/{{data.id}}" type="button">(Change)</a></td>
+            <td><a href="/delete_organization/{{data.id}}" type="button">Delete</a></td>
+         </tbody>
+         {% endfor %}
+      </table>
+      </div>
+      <br><br>
+      
+      <a href="/add_schedule">Add Schedule</a><br>
+      <button class="collapsible"> Schedule </button>
+      <div class="content">
+      <table>
+         <thead>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Projects</th>
+            <th>Organizations</th>
+            <th>Days</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Privacy</th>
+            <th>#</th>
+         </thead>
+         {% for data in user.schedules %}
+         <tbody>
+            <td>{{data.id}}</td>
+            <td>{{data.name}}</td>
+            <td>
+                {% if data.projects %}
+                    {% for project in data.projects %}
+                        {{ project.name }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                {% else %}
+                {% endif %}
+            </td>
+            <td>
+                {% if data.organizations %}
+                    {% for organization in data.organizations %}
+                        {{ organization.name }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                {% else %}
+                {% endif %}
+            </td>
+            <td>{% if data.days %}{{data.days}}{% else %}{% endif %}</td>
+            <td>{% if data.start_time %}{{data.start_time}}{% else %}{% endif %}</td>
+            <td>{% if data.end_time %}{{data.end_time}}{% else %}{% endif %}</td>
+            <td>{% if data.private %}Private{% else %}Public{% endif %}<a href="/private_schedule/{{data.id}}" type="button">(Change)</a></td>
+            <td><a href="/delete_schedule/{{data.id}}" type="button">Delete</a></td>
+         </tbody>
+         {% endfor %}
+      </table>
+      </div>
+      
+      
+      <br>
+      <a href="/logout" type="button">Log Out</a>
+      <br>
+      <br>
+      <a href="/graph">Graph</a>
+      <br><br>
+      {% if msg %}
+      <p>{{ msg }}</p>
+      {% endif %}
+      
+      
+    <script>
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+        
+        for (i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                if (content.style.display === "block") {
+                    content.style.display = "none";
+                } else {
+                    content.style.display = "block";
+                }
+            });
+        }
+    </script>
+      
+   </body>
+</html>

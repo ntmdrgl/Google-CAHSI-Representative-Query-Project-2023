@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .collapsible {
+          background-color: #777;
+          color: white;
+          cursor: pointer;
+          padding: 18px;
+          width: 100%;
+          border: none;
+          text-align: left;
+          outline: none;
+          font-size: 15px;
+        }
+        
+        .active, .collapsible:hover {
+          background-color: #555;
+        }
+        
+        .content {
+          padding: 0 18px;
+          display: block;
+          overflow: hidden;
+          background-color: #f1f1f1;
+        }
+    </style>
+</head>
+
+<html>
+   <head>
+      <title>Home Page</title>
+   </head>
+   <body>
+      <h3> {{user.first_name}}'s Home </h3>
+      <a href="/profile" type="button">Profile</a>
+      
+      <button class="collapsible">Requests</button>
+      <div class="content">
+      <table>
+         <thead>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Reason</th>
+            <th>#</th>
+         </thead>
+         {% for data in user.requests %}
+         <tbody>
+            <td>{{data.id}}</td>
+            <td>{{data.name}}</td>
+            <td>{{data.reason}}</td>
+            <td><a href="/accept_request/{{data.id}}" type="button">Accept</a></td>
+            <td><a href="/ignore_request/{{data.id}}" type="button">Ignore</a></td>
+         </tbody>
+         {% endfor %}
+      </table>
+      </div>
+      <br><br>
+      
+      <button class="collapsible">Upcoming Birthdays</button>
+      <div class="content">
+      <table>
+         <thead>
+            <th>Name</th>
+            <th>Birthday</th>
+         </thead>
+         {% set count = namespace(value=0) %}
+         {% set max = namespace(value=10) %}
+         {% for data in result_connection_birthdays %}
+                {% if count.value < max.value %}
+                <tbody>
+                   <td>{{data.first_name}} {{data.last_name}}</td>
+                   <td>{{data.birthday.strftime("%B")}} {{data.birthday.day}}</td>
+                </tbody>
+                {% else %}
+                {% endif %}
+                {% set count.value = count.value + 1 %}
+         {% endfor %}
+         {% if count == 0 %}
+             <tbody>
+                 <td> No related connections found </td>
+             </tbody>
+         {% else %} 
+         {% endif %}
+      </table>
+      </div>
+      <br><br>
+      
+      <button class="collapsible">Recommendations: Related Connections</button>
+      <div class="content">
+      <table>
+         <thead>
+            <th>Id</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Score</th>
+            <th>#</th>
+         </thead>
+         {% set count = namespace(value=0) %}
+         {% set max = namespace(value=10) %}
+         {% for (id,first_name,last_name,score) in result_connected_connections %}
+                {% if count.value < max.value %}
+                <tbody>
+                   <td>{{id}}</td>
+                   <td>{{first_name}}</td>
+                   <td>{{last_name}}</td>
+                   <td>{{score}}</td>
+                   <td><a href="/send_request/{{id}}" type="button">Send Request</a></td>
+                </tbody>
+                {% else %}
+                {% endif %}
+                {% set count.value = count.value + 1 %}
+         {% endfor %}
+         {% if count == 0 %}
+             <tbody>
+                 <td> No related connections found </td>
+             </tbody>
+         {% else %} 
+         {% endif %}
+      </table>
+      </div>
+      <br><br>
+      
+      <button class="collapsible">Network: Related Projects</button>
+      <div class="content">
+      <table>
+         <thead>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Tags</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Is Ongoing</th>
+            <th>Schedules</th>
+            <th>Score</th>
+         </thead>
+         {% set count = namespace(value=0) %}
+         {% set max = namespace(value=10) %}
+         {% for (id,name,tags,start_date,end_date,is_ongoing,score) in result_connected_projects %}
+             {% if count.value < max.value %}
+             <tbody>
+                <td>{{id}}</td>
+                <td>{{name}}</td>
+                <td>{% if tags %}{{tags}}{% else %}{% endif %}</td>
+                <td>{% if start_date %}{{start_date}}{% else %}{% endif %}</td>
+                <td>{% if end_date %}{{end_date}}{% else %}{% endif %}</td>
+                <td>{% if is_ongoing %}{{is_ongoing}}{% else %}{% endif %}</td>
+                <td><a href="/view_project_schedule/{{id}}" type="button">View</a></td>
+                <td>{{score}}</td>
+             </tbody>
+             {% else %}
+             {% endif %}
+             {% set count.value = count.value + 1 %}
+         {% endfor %}
+         {% if count == 0 %}
+             <tbody>
+                 <td> No related projects found </td>
+             </tbody>
+         {% else %} 
+         {% endif %}
+      </table>
+      </div>
+      <br><br>
+      
+      <button class="collapsible">Network: Related Projects</button>
+      <div class="content">
+      <table>
+         <thead>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Tags</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Is Ongoing</th>
+            <th>Schedules</th>
+            <th>Score</th>
+         </thead>
+         {% set count = namespace(value=0) %}
+         {% set max = namespace(value=10) %}
+         {% for (id,name,tags,start_date,end_date,is_ongoing,score) in result_connected_organizations %}
+             {% if count.value < max.value %}
+             <tbody>
+                <td>{{id}}</td>
+                <td>{{name}}</td>
+                <td>{% if tags %}{{tags}}{% else %}{% endif %}</td>
+                <td>{% if start_date %}{{start_date}}{% else %}{% endif %}</td>
+                <td>{% if end_date %}{{end_date}}{% else %}{% endif %}</td>
+                <td>{% if is_ongoing %}{{is_ongoing}}{% else %}{% endif %}</td>
+                <td><a href="/view_organization_schedule/{{id}}" type="button">View</a></td>
+                <td>{{score}}</td>
+             </tbody>
+             {% else %}
+             {% endif %}
+             {% set count.value = count.value + 1 %}
+         {% endfor %}
+         {% if count == 0 %}
+             <tbody>
+                 <td> No related organizations found </td>
+             </tbody>
+         {% else %} 
+         {% endif %}
+      </table>
+      </div>
+      
+      <br>
+      <a href="/logout" type="button">Log Out</a>
+      <br>
+      <br>
+      <a href="/graph">Graph</a>
+      <br><br>
+      {% if msg %}
+      <p>{{ msg }}</p>
+      {% endif %}
+      
+      <script>
+          var coll = document.getElementsByClassName("collapsible");
+          var i;
+          
+          for (i = 0; i < coll.length; i++) {
+              coll[i].addEventListener("click", function() {
+                  this.classList.toggle("active");
+                  var content = this.nextElementSibling;
+                  if (content.style.display === "block") {
+                      content.style.display = "none";
+                  } else {
+                      content.style.display = "block";
+                  }
+              });
+          }
+      </script>
+      
+   </body>
+</html>

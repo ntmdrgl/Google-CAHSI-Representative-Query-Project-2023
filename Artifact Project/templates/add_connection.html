@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+
+<html>
+   <head>
+      <title>Add Connection</title>
+   </head>
+   <body>
+      <h3>Add Connection</h3>
+      <form action="/add_connection" method="POST">
+         <label>Connection Username</label>
+         <input type="text" name="username" placeholder="username">
+         <br><br>
+         <button type="submit">Add Connection</button>
+      </form>
+      <br>
+      <a href="/profile">Return</a>
+      <br><br>
+      {% if msg %}
+      <p>{{ msg }}</p>
+      {% endif %}   
+   </body>
+</html>
+

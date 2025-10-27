@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+
+<html>
+   <head>
+      <title>Login Page</title>
+   </head>
+   <body>
+      <h3>Login Form</h3>
+      <form action="/login" method="POST">
+         <label>Username</label>
+         <input type="text" name="username" placeholder="username">
+         <br><br>
+         <label>Password</label>
+         <input type="password" name= "password" placeholder="password">
+         <button type="submit">Login</button>
+      </form>
+      <br>
+      <a href="/display_create_account">Create Account</a>
+      <br><br>
+      <a href="/">Return</a>
+      <br><br>
+      {% if msg %}
+      <p>{{ msg }}</p>
+      {% endif %}
+   </body>
+</html>

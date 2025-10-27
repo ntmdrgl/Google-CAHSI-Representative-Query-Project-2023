@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+
+<html>
+   <head>
+      <title>Add Education</title>
+   </head>
+   <body>
+      <h3>Add Education</h3>
+      <form action="/add_education" method="POST">
+         <label>Education Name</label>
+         <input type="text" name="name" placeholder="name">
+         <br><br>
+         <label>Degree</label><br>
+         {% for degree in degrees_list %}
+            <input type="radio" name="degrees" value="{{ degree }}"> {{ degree }} <br>
+         {% endfor %}
+         <input type="reset" name="degrees">
+         <br><br>
+         <label>Field of Study</label>
+         <input type="search" id="searchInput" name="field_of_study" list="searchValues" placeholder="search...">
+            <datalist id="searchValues">
+               {% for field_of_study in fields_of_study_list %}
+                  <option value="{{ field_of_study }}">{{ field_of_study }}</option>
+               {% endfor %}
+            </datalist>
+         <br><br>
+         <label>Start Date</label>
+         <input type="date" name="start_date">
+         <br><br>
+         <label>End Date</label>
+         <input type="date" name="end_date">
+         <br><br>
+         <label>Ongoing?</label>
+         <input type="checkbox" name= "is_ongoing">
+         <br><br>
+         <label>Private?</label>
+         <input type="checkbox" name= "private">
+         <br><br>
+         
+         <button type="submit">Add Education</button>
+      </form>
+      <br>
+      <a href="/profile">Return</a>
+      <br><br>
+      {% if msg %}
+      <p>{{ msg }}</p>
+      {% endif %}   
+   </body>
+</html>
+

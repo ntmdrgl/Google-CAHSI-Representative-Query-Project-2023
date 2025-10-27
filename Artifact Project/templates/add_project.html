@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+<html>
+   <head>
+      <title>Add Project</title>
+   </head>
+   <body>
+      <h3>Add Project</h3>
+      <form action="/add_project" method="POST">
+         <label>Project Name</label>
+         <input type="text" name="name" placeholder="name">
+         <br><br>
+         <label>Tag</label><br>
+         {% for project_tag in project_tags_list %}
+            <input type="radio" name="degrees" value="{{ project_tag }}"> {{ project_tag }} <br>
+         {% endfor %}
+         <input type="reset" name="degrees">
+         <br><br>
+         <label>Connections</label><br>
+         {% for connection in connections %}
+             <input type="checkbox" name="connections[]" value="{{ connection.id }}"> {{ connection.name }}<br>
+         {% endfor %}
+         <label>Start Date</label>
+         <input type="date" name="start_date">
+         <br><br>
+         <label>End Date</label>
+         <input type="date" name="end_date">
+         <br><br>
+         <label>Ongoing?</label>
+         <input type="checkbox" name= "is_ongoing">
+         <br><br>
+         <label>Private?</label>
+         <input type="checkbox" name= "private">
+         <br><br>
+         
+         <button type="submit">Add Project</button>
+      </form>
+      <br>
+      <a href="/profile">Return</a>
+      <br><br>
+      {% if msg %}
+      <p>{{ msg }}</p>
+      {% endif %}   
+   </body>
+</html>
+
